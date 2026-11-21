@@ -93,6 +93,10 @@ export default function Home() {
     });
   }, [search, category]);
 
+  const selectedModels = models.filter((model) =>
+    selected.includes(model.name)
+  );
+
   function toggleCompare(name: string) {
     setSelected((previous) =>
       previous.includes(name)
@@ -420,6 +424,77 @@ export default function Home() {
                     Clear selection
                   </button>
                 </div>
+              )}
+
+              {/* Model Comparison */}
+              {selectedModels.length >= 2 && (
+                <section className="space-y-5">
+                  <div>
+                    <h2 className="text-xl font-bold">
+                      Model Comparison
+                    </h2>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      Compare selected AI models side by side.
+                    </p>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#101117]">
+                    <table className="w-full min-w-[600px] text-left">
+                      <thead>
+                        <tr className="border-b border-white/[0.08]">
+                          <th className="p-5 text-xs text-zinc-500">
+                            SPECIFICATIONS
+                          </th>
+                          {selectedModels.map((model) => (
+                            <th key={model.name} className="p-5">
+                              <p className="text-sm font-semibold">
+                                {model.name}
+                              </p>
+                              <p className="mt-1 text-xs text-zinc-500">
+                                {model.company}
+                              </p>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+
+                      <tbody className="divide-y divide-white/[0.06]">
+                        {[
+                          {
+                            label: "Category",
+                            value: (m: (typeof models)[number]) => m.category,
+                          },
+                          {
+                            label: "Context Window",
+                            value: (m: (typeof models)[number]) => m.context,
+                          },
+                          {
+                            label: "Input Price / 1M tokens",
+                            value: (m: (typeof models)[number]) => m.input,
+                          },
+                          {
+                            label: "Output Price / 1M tokens",
+                            value: (m: (typeof models)[number]) => m.output,
+                          },
+                        ].map((spec) => (
+                          <tr key={spec.label}>
+                            <td className="p-5 text-xs text-zinc-400">
+                              {spec.label}
+                            </td>
+                            {selectedModels.map((model) => (
+                              <td
+                                key={model.name}
+                                className="p-5 text-sm font-medium text-white"
+                              >
+                                {spec.value(model)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
               )}
             </section>
 
