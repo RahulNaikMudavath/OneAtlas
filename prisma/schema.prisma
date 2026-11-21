@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  type        String?
+  models      Model[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Model {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  category      String
+  contextWindow String
+  inputPrice    Float
+  outputPrice   Float
+  description   String?
+  capabilities  String[]
+  modalities    String[]
+
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+
+  providers     ModelProvider[]
+  benchmarks    Benchmark[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Provider {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  website     String?
+  models      ModelProvider[]
+  createdAt   DateTime @default(now())
+}
+
+model ModelProvider {
+  id         String   @id @default(cuid())
+  modelId    String
+  providerId String
+
+  model      Model    @relation(fields: [modelId], references: [id])
+  provider   Provider @relation(fields: [providerId], references: [id])
+
+  @@unique([modelId, providerId])
+}
+
+model Benchmark {
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  score       Float
+  source      String?
+  evaluatedAt DateTime?
+
+  modelId     String
+  model       Model    @relation(fields: [modelId], references: [id])
+
+  createdAt   DateTime @default(now())
+}
