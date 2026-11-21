@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { models } from "@/data/models";
 import {
   Search,
   LayoutDashboard,
@@ -31,24 +30,69 @@ const companyColors: Record<string, string> = {
 
 const categories = ["All Models", "Reasoning", "Chat", "Multimodal"];
 
+type APIModel = {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  contextWindow: string;
+  inputPrice: number;
+  outputPrice: number;
+  company: {
+    name: string;
+  };
+};
+
 export default function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All Models");
   const [selected, setSelected] = useState<string[]>([]);
   const [mobileMenu, setMobileMenu] = useState(false);
 
+  const [models, setModels] = useState<APIModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchModels() {
+      try {
+        const response = await fetch("/api/models");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch models");
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.message || "Unable to load models");
+        }
+
+        setModels(result.data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Something went wrong"
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchModels();
+  }, []);
+
   const filteredModels = useMemo(() => {
     return models.filter((model) => {
       const matchesSearch =
         model.name.toLowerCase().includes(search.toLowerCase()) ||
-        model.company.toLowerCase().includes(search.toLowerCase());
+        model.company.name.toLowerCase().includes(search.toLowerCase());
 
       const matchesCategory =
         category === "All Models" || model.category === category;
 
       return matchesSearch && matchesCategory;
     });
-  }, [search, category]);
+  }, [models, search, category]);
 
   const selectedModels = models.filter((model) =>
     selected.includes(model.name)
@@ -302,71 +346,85 @@ export default function Home() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[650px] text-left">
-                    <thead className="bg-white/[0.02] text-[11px] uppercase tracking-wider text-zinc-500">
-                      <tr>
-                        <th className="px-5 py-4 font-medium">Model</th>
-                        <th className="px-5 py-4 font-medium">Category</th>
-                        <th className="px-5 py-4 font-medium">Context</th>
-                        <th className="px-5 py-4 font-medium">Input / 1M</th>
-                        <th className="px-5 py-4 font-medium">Output / 1M</th>
-                        <th className="px-5 py-4 font-medium">Compare</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.06]">
-                      {filteredModels.map((model) => (
-                        <tr
-                          key={model.name}
-                          className="transition hover:bg-white/[0.025]"
-                        >
-                          <td className="px-5 py-5">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`h-2.5 w-2.5 rounded-full ${companyColors[model.company] || "bg-violet-500"}`}
-                              />
-                              <div>
-                                <Link
-                                  href={`/models/${model.slug}`}
-                                  className="text-sm font-semibold hover:text-violet-400 transition"
-                                >
-                                  {model.name}
-                                </Link>
-                                <p className="mt-1 text-xs text-zinc-500">
-                                  {model.company}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-5 py-5 text-xs text-zinc-400">
-                            {model.category}
-                          </td>
-                          <td className="px-5 py-5 text-xs text-zinc-300">
-                            {model.context}
-                          </td>
-                          <td className="px-5 py-5 text-xs text-zinc-300">
-                            {model.input}
-                          </td>
-                          <td className="px-5 py-5 text-xs text-zinc-300">
-                            {model.output}
-                          </td>
-                          <td className="px-5 py-5">
-                            <button
-                              onClick={() => toggleCompare(model.name)}
-                              className={`rounded-lg px-3 py-2 text-xs transition ${
-                                selected.includes(model.name)
-                                  ? "bg-violet-600 text-white"
-                                  : "border border-white/10 text-zinc-400 hover:border-violet-500 hover:text-white"
-                              }`}
-                            >
-                              {selected.includes(model.name)
-                                ? "Selected"
-                                : "Compare"}
-                            </button>
-                          </td>
+                  {loading && (
+                    <p className="p-8 text-center text-sm text-zinc-400">
+                      Loading AI models from database...
+                    </p>
+                  )}
+
+                  {error && (
+                    <p className="p-8 text-center text-sm text-red-400">
+                      {error}
+                    </p>
+                  )}
+
+                  {!loading && !error && (
+                    <table className="w-full min-w-[650px] text-left">
+                      <thead className="bg-white/[0.02] text-[11px] uppercase tracking-wider text-zinc-500">
+                        <tr>
+                          <th className="px-5 py-4 font-medium">Model</th>
+                          <th className="px-5 py-4 font-medium">Category</th>
+                          <th className="px-5 py-4 font-medium">Context</th>
+                          <th className="px-5 py-4 font-medium">Input / 1M</th>
+                          <th className="px-5 py-4 font-medium">Output / 1M</th>
+                          <th className="px-5 py-4 font-medium">Compare</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.06]">
+                        {filteredModels.map((model) => (
+                          <tr
+                            key={model.name}
+                            className="transition hover:bg-white/[0.025]"
+                          >
+                            <td className="px-5 py-5">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`h-2.5 w-2.5 rounded-full ${companyColors[model.company.name] || "bg-violet-500"}`}
+                                />
+                                <div>
+                                  <Link
+                                    href={`/models/${model.slug}`}
+                                    className="text-sm font-semibold hover:text-violet-400 transition"
+                                  >
+                                    {model.name}
+                                  </Link>
+                                  <p className="mt-1 text-xs text-zinc-500">
+                                    {model.company.name}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-5 text-xs text-zinc-400">
+                              {model.category}
+                            </td>
+                            <td className="px-5 py-5 text-xs text-zinc-300">
+                              {model.contextWindow}
+                            </td>
+                            <td className="px-5 py-5 text-xs text-zinc-300">
+                              ${model.inputPrice.toFixed(2)}
+                            </td>
+                            <td className="px-5 py-5 text-xs text-zinc-300">
+                              ${model.outputPrice.toFixed(2)}
+                            </td>
+                            <td className="px-5 py-5">
+                              <button
+                                onClick={() => toggleCompare(model.name)}
+                                className={`rounded-lg px-3 py-2 text-xs transition ${
+                                  selected.includes(model.name)
+                                    ? "bg-violet-600 text-white"
+                                    : "border border-white/10 text-zinc-400 hover:border-violet-500 hover:text-white"
+                                }`}
+                              >
+                                {selected.includes(model.name)
+                                  ? "Selected"
+                                  : "Compare"}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                   {filteredModels.length === 0 && (
                     <p className="p-10 text-center text-sm text-zinc-500">
                       No models found. Try another search.
@@ -420,7 +478,7 @@ export default function Home() {
                                 {model.name}
                               </p>
                               <p className="mt-1 text-xs text-zinc-500">
-                                {model.company}
+                                {model.company.name}
                               </p>
                             </th>
                           ))}
@@ -431,19 +489,19 @@ export default function Home() {
                         {[
                           {
                             label: "Category",
-                            value: (m: (typeof models)[number]) => m.category,
+                            value: (m: APIModel) => m.category,
                           },
                           {
                             label: "Context Window",
-                            value: (m: (typeof models)[number]) => m.context,
+                            value: (m: APIModel) => m.contextWindow,
                           },
                           {
                             label: "Input Price / 1M tokens",
-                            value: (m: (typeof models)[number]) => m.input,
+                            value: (m: APIModel) => `$${m.inputPrice.toFixed(2)}`,
                           },
                           {
                             label: "Output Price / 1M tokens",
-                            value: (m: (typeof models)[number]) => m.output,
+                            value: (m: APIModel) => `$${m.outputPrice.toFixed(2)}`,
                           },
                         ].map((spec) => (
                           <tr key={spec.label}>
