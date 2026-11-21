@@ -116,6 +116,11 @@ export default function Home() {
                       behavior: "smooth",
                     });
                   }
+
+                  if (item.name === "Rankings") {
+                    window.location.href = "/rankings";
+                  }
+
                   setMobileMenu(false);
                 }}
                 className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm transition ${
