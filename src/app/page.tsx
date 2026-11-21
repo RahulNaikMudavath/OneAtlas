@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { models } from "@/data/models";
 import {
   Search,
   LayoutDashboard,
@@ -19,58 +21,13 @@ import {
   X,
 } from "lucide-react";
 
-const models = [
-  {
-    name: "GPT-5.1",
-    company: "OpenAI",
-    category: "Reasoning",
-    context: "400K",
-    input: "$1.25",
-    output: "$10.00",
-    badge: "Popular",
-    color: "bg-emerald-500",
-  },
-  {
-    name: "Claude Sonnet 4.5",
-    company: "Anthropic",
-    category: "Reasoning",
-    context: "200K",
-    input: "$3.00",
-    output: "$15.00",
-    badge: "Featured",
-    color: "bg-orange-400",
-  },
-  {
-    name: "Gemini 2.5 Pro",
-    company: "Google",
-    category: "Multimodal",
-    context: "1M",
-    input: "$1.25",
-    output: "$10.00",
-    badge: "Long Context",
-    color: "bg-blue-500",
-  },
-  {
-    name: "DeepSeek V3",
-    company: "DeepSeek",
-    category: "Chat",
-    context: "128K",
-    input: "$0.27",
-    output: "$1.10",
-    badge: "Affordable",
-    color: "bg-cyan-500",
-  },
-  {
-    name: "Llama 4 Maverick",
-    company: "Meta",
-    category: "Multimodal",
-    context: "1M",
-    input: "$0.20",
-    output: "$0.60",
-    badge: "Open Source",
-    color: "bg-indigo-500",
-  },
-];
+const companyColors: Record<string, string> = {
+  OpenAI: "bg-emerald-500",
+  Anthropic: "bg-orange-400",
+  Google: "bg-blue-500",
+  DeepSeek: "bg-cyan-500",
+  Meta: "bg-indigo-500",
+};
 
 const categories = ["All Models", "Reasoning", "Chat", "Multimodal"];
 
@@ -356,12 +313,15 @@ export default function Home() {
                           <td className="px-5 py-5">
                             <div className="flex items-center gap-3">
                               <div
-                                className={`h-2.5 w-2.5 rounded-full ${model.color}`}
+                                className={`h-2.5 w-2.5 rounded-full ${companyColors[model.company] || "bg-violet-500"}`}
                               />
                               <div>
-                                <p className="text-sm font-semibold">
+                                <Link
+                                  href={`/models/${model.slug}`}
+                                  className="text-sm font-semibold hover:text-violet-400 transition"
+                                >
                                   {model.name}
-                                </p>
+                                </Link>
                                 <p className="mt-1 text-xs text-zinc-500">
                                   {model.company}
                                 </p>
