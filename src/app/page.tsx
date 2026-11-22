@@ -12,7 +12,6 @@ import {
   Settings,
   Bell,
   ChevronDown,
-  ArrowUpRight,
   Zap,
   BrainCircuit,
   Eye,
