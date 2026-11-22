@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -15,6 +14,10 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  Sparkles,
+  Server,
+  Layers,
+  Zap,
 } from "lucide-react";
 
 type ProviderModel = {
@@ -31,8 +34,8 @@ type ProviderModel = {
     name: string;
     category: string;
     contextWindow: string;
-    inputPrice: number;
-    outputPrice: number;
+    inputPrice?: number | null;
+    outputPrice?: number | null;
   };
 };
 
@@ -45,17 +48,43 @@ type Provider = {
 
 function average(values: (number | null | undefined)[]) {
   const valid = values.filter(
-    (v): v is number => typeof v === "number" && !isNaN(v)
+    (v): v is number => typeof v === "number" && !isNaN(v) && Number.isFinite(v)
   );
   if (valid.length === 0) return null;
   return valid.reduce((sum, value) => sum + value, 0) / valid.length;
 }
 
 function formatPrice(value: number | null | undefined) {
-  if (value === null || value === undefined || isNaN(Number(value))) {
+  if (value === null || value === undefined) {
     return "N/A";
   }
-  return `$${Number(value).toFixed(2)}`;
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return "N/A";
+  }
+  return `$${num.toFixed(2)}`;
+}
+
+function formatPercent(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "N/A";
+  }
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return "N/A";
+  }
+  return `${num.toFixed(1)}%`;
+}
+
+function formatLatency(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "N/A";
+  }
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return "N/A";
+  }
+  return `${Math.round(num)} ms`;
 }
 
 export default function ProvidersPage() {
@@ -99,7 +128,7 @@ export default function ProvidersPage() {
   }, [providers, search]);
 
   const totalModels = providers.reduce(
-    (total, provider) => total + provider.models.length,
+    (total, provider) => total + (provider.models?.length || 0),
     0
   );
 
@@ -118,356 +147,374 @@ export default function ProvidersPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#08090d] px-5 py-8 text-white sm:px-10">
-      <div className="mx-auto max-w-7xl">
+    <main className="relative min-h-screen overflow-hidden bg-[#07080f] px-5 py-8 text-white sm:px-10">
+      {/* Ambient Aurora Glow Background */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -left-48 -top-48 h-[600px] w-[600px] rounded-full bg-violet-600/10 blur-[140px]" />
+        <div className="absolute -right-48 top-1/4 h-[600px] w-[600px] rounded-full bg-cyan-600/10 blur-[150px]" />
+        <div className="absolute bottom-10 left-1/3 h-[500px] w-[500px] rounded-full bg-emerald-600/08 blur-[160px]" />
+      </div>
 
+      <div className="relative z-10 mx-auto max-w-7xl">
+        {/* Back Link */}
         <Link
           href="/"
-          className="mb-9 inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white"
+          className="group mb-8 inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xs font-medium text-slate-300 backdrop-blur-md transition-all duration-200 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-white"
         >
-          <ArrowLeft size={17} />
-          Back to OneAtlas
+          <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
+          Back to Explorer
         </Link>
 
-        <div className="mb-9">
-          <div className="mb-3 flex items-center gap-2 text-xs tracking-widest text-violet-400">
-            <Building2 size={17} />
-            PROVIDER INTELLIGENCE
+        {/* Page Hero Header */}
+        <div className="mb-10">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-violet-300 backdrop-blur-md">
+            <Server size={14} className="text-violet-400" />
+            Infrastructure & Routing Telemetry
           </div>
 
-          <h1 className="text-3xl font-bold sm:text-4xl">
-            AI Model <span className="text-violet-400">Providers</span>
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl">
+            AI Model{" "}
+            <span className="bg-gradient-to-r from-violet-400 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent">
+              Providers
+            </span>
           </h1>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-            Explore AI providers, compare model pricing, monitor
-            performance indicators and discover supported models.
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400 sm:text-base">
+            Real-time inference endpoints, latency metrics, uptime benchmarks, and competitive price-per-token indexing across global host providers.
           </p>
         </div>
 
-        {/* OVERVIEW STATISTICS */}
-
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-          <div className="rounded-2xl border border-white/[0.08] bg-[#101117] p-5">
-            <Building2 className="mb-4 text-violet-400" size={23} />
-            <p className="text-sm text-zinc-400">Providers listed</p>
-            <h2 className="mt-2 text-3xl font-bold">
+        {/* Overview Stats Cards */}
+        <div className="mb-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Card 1: Providers */}
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/50 p-6 backdrop-blur-xl transition-all duration-300 hover:border-violet-500/40 hover:shadow-[0_0_30px_rgba(139,92,246,0.15)]">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Hosting Providers
+              </span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-400">
+                <Building2 size={18} />
+              </div>
+            </div>
+            <p className="mt-4 text-3xl font-extrabold text-white">
               {loading ? "..." : providers.length}
-            </h2>
+            </p>
+            <p className="mt-1 text-xs text-slate-400">Active provider endpoints</p>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.08] bg-[#101117] p-5">
-            <BrainCircuit className="mb-4 text-violet-400" size={23} />
-            <p className="text-sm text-zinc-400">Model listings</p>
-            <h2 className="mt-2 text-3xl font-bold">
+          {/* Card 2: Total Listings */}
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/50 p-6 backdrop-blur-xl transition-all duration-300 hover:border-cyan-500/40 hover:shadow-[0_0_30px_rgba(6,182,212,0.15)]">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Model Deployments
+              </span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400">
+                <BrainCircuit size={18} />
+              </div>
+            </div>
+            <p className="mt-4 text-3xl font-extrabold text-white">
               {loading ? "..." : totalModels}
-            </h2>
+            </p>
+            <p className="mt-1 text-xs text-slate-400">Catalog inference routes</p>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.08] bg-[#101117] p-5">
-            <Activity className="mb-4 text-emerald-400" size={23} />
-            <p className="text-sm text-zinc-400">Average uptime</p>
-            <h2 className="mt-2 text-3xl font-bold">
-              {loading
-                ? "..."
-                : averageUptime === null || averageUptime === undefined || isNaN(averageUptime)
-                  ? "N/A"
-                  : `${averageUptime.toFixed(2)}%`}
-            </h2>
+          {/* Card 3: Average Uptime */}
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/50 p-6 backdrop-blur-xl transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Fleet Uptime (30m)
+              </span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+                <Activity size={18} />
+              </div>
+            </div>
+            <p className="mt-4 text-3xl font-extrabold text-emerald-400">
+              {loading ? "..." : formatPercent(averageUptime)}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">Global service availability</p>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.08] bg-[#101117] p-5">
-            <Gauge className="mb-4 text-cyan-400" size={23} />
-            <p className="text-sm text-zinc-400">Average latency</p>
-            <h2 className="mt-2 text-3xl font-bold">
-              {loading
-                ? "..."
-                : averageLatency === null || averageLatency === undefined || isNaN(averageLatency)
-                  ? "N/A"
-                  : `${Math.round(averageLatency)} ms`}
-            </h2>
+          {/* Card 4: Average Latency */}
+          <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/50 p-6 backdrop-blur-xl transition-all duration-300 hover:border-amber-500/40 hover:shadow-[0_0_30px_rgba(245,158,11,0.15)]">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Average Latency
+              </span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400">
+                <Gauge size={18} />
+              </div>
+            </div>
+            <p className="mt-4 text-3xl font-extrabold text-amber-300">
+              {loading ? "..." : formatLatency(averageLatency)}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">Time to first token index</p>
           </div>
-
         </div>
 
-        {/* AVAILABILITY SUMMARY */}
-
-        <div className="mb-9 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-[#101117] p-5">
+        {/* Global Fleet Status Pill Banner */}
+        <div className="mb-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-slate-900/40 p-5 backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
-              <CheckCircle2 size={21} />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              <CheckCircle2 size={22} />
             </div>
-
             <div>
-              <p className="text-sm font-semibold">Provider availability</p>
-              <p className="mt-1 text-xs text-zinc-500">
-                Available model-provider listings
+              <p className="text-sm font-bold text-white">Global Routing Availability</p>
+              <p className="text-xs text-slate-400">
+                Health check status across multi-provider clusters
               </p>
             </div>
           </div>
 
-          <p className="text-2xl font-bold">
-            {loading ? "..." : `${availableListings}/${totalModels}`}
-            <span className="ml-2 text-sm font-normal text-zinc-500">
-              available
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-300">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+              {loading ? "Checking..." : `${availableListings} of ${totalModels} Endpoints Operational`}
             </span>
-          </p>
+          </div>
         </div>
 
-        {/* PROVIDER LIST */}
+        {/* Search Bar Section */}
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-white">
+              Explore Host Providers
+            </h2>
+            <p className="text-xs text-slate-400">
+              Inspect model pricing, endpoint availability, and technical latency.
+            </p>
+          </div>
 
-        <div className="mb-5">
-          <h2 className="text-xl font-bold">Explore Providers</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Compare pricing and performance across AI providers.
-          </p>
+          <div className="relative w-full max-w-md">
+            <Search
+              size={17}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search providers by name..."
+              className="w-full rounded-xl border border-white/[0.09] bg-slate-900/60 py-3 pl-11 pr-4 text-sm text-white placeholder-slate-500 backdrop-blur-xl outline-none transition-all duration-200 focus:border-violet-500/60 focus:ring-2 focus:ring-violet-500/20"
+            />
+          </div>
         </div>
 
-        <div className="relative mb-7">
-          <Search
-            size={19}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"
-          />
-
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search providers..."
-            className="w-full rounded-xl border border-white/[0.09] bg-[#101117] py-4 pl-12 pr-4 text-sm outline-none focus:border-violet-500"
-          />
-        </div>
-
+        {/* Loading Indicator */}
         {loading && (
-          <p className="rounded-xl border border-white/10 p-8 text-center text-sm text-zinc-400">
-            Loading providers...
-          </p>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-slate-900/40 p-16 text-center backdrop-blur-xl">
+            <div className="h-10 w-10 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+            <p className="mt-4 text-sm font-medium text-slate-300">
+              Gathering provider fleet intelligence...
+            </p>
+          </div>
         )}
 
+        {/* Error State */}
         {error && (
-          <p className="rounded-xl border border-red-500/20 p-8 text-center text-sm text-red-400">
-            {error}
-          </p>
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-8 text-center text-red-300 backdrop-blur-xl">
+            <AlertCircle size={28} className="mx-auto mb-2 text-red-400" />
+            <p className="text-sm font-medium">{error}</p>
+          </div>
         )}
 
+        {/* Provider Cards Grid */}
         {!loading && !error && (
-          <div className="grid gap-5 md:grid-cols-2">
-
+          <div className="grid gap-6 md:grid-cols-2">
             {filteredProviders.map((provider) => {
               const latency = average(
-                provider.models.map((item) => item.latencyMs)
+                provider.models?.map((item) => item.latencyMs) || []
               );
-
               const uptime = average(
-                provider.models.map((item) => item.uptimePercent)
+                provider.models?.map((item) => item.uptimePercent) || []
               );
-
-              const availableCount = provider.models.filter(
+              const availableCount = (provider.models || []).filter(
                 (item) => item.isAvailable
               ).length;
+              const modelCount = provider.models?.length || 0;
 
               return (
                 <article
                   key={provider.id}
-                  className="rounded-2xl border border-white/[0.08] bg-[#101117] p-6 transition hover:border-violet-500/40"
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-900/45 p-6 backdrop-blur-xl transition-all duration-300 hover:border-violet-500/40 hover:shadow-[0_0_35px_rgba(139,92,246,0.12)]"
                 >
+                  <div>
+                    {/* Header: Avatar, Name & Model Count Badge */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-cyan-500/20 text-violet-300 shadow-inner">
+                          <Building2 size={24} />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-white transition-colors group-hover:text-violet-300">
+                            {provider.name}
+                          </h3>
+                          {provider.website ? (
+                            <a
+                              href={provider.website}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-violet-400 transition-colors hover:text-cyan-300"
+                            >
+                              Official Endpoint
+                              <ExternalLink size={11} />
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-500">API Host</span>
+                          )}
+                        </div>
+                      </div>
 
-                  {/* PROVIDER HEADER */}
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
-                      <Building2 size={24} />
+                      <span className="inline-flex items-center rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-300">
+                        {modelCount} {modelCount === 1 ? "model" : "models"}
+                      </span>
                     </div>
 
-                    <span className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-400">
-                      {provider.models.length}{" "}
-                      {provider.models.length === 1 ? "model" : "models"}
-                    </span>
-                  </div>
+                    {/* Performance Metrics Quick Bar */}
+                    <div className="mt-5 grid grid-cols-3 gap-2.5">
+                      {/* Latency */}
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          <Gauge size={13} className="text-amber-400" />
+                          Latency
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-slate-200">
+                          {formatLatency(latency)}
+                        </p>
+                      </div>
 
-                  <h3 className="mt-5 text-xl font-bold">
-                    {provider.name}
-                  </h3>
+                      {/* Uptime */}
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          <Activity size={13} className="text-emerald-400" />
+                          Uptime
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-emerald-400">
+                          {formatPercent(uptime)}
+                        </p>
+                      </div>
 
-                  {provider.website && (
-                    <a
-                      href={provider.website}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-2 text-xs text-violet-400"
-                    >
-                      Official website
-                      <ExternalLink size={12} />
-                    </a>
-                  )}
+                      {/* Active Status */}
+                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                          <CheckCircle2 size={13} className="text-violet-400" />
+                          Live
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-violet-300">
+                          {availableCount}/{modelCount}
+                        </p>
+                      </div>
+                    </div>
 
-                  {/* PROVIDER PERFORMANCE */}
-
-                  <div className="mt-5 grid grid-cols-3 gap-3">
-
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                      <Gauge size={17} className="mb-2 text-cyan-400" />
-                      <p className="text-xs text-zinc-500">Latency</p>
-                      <p className="mt-1 text-sm font-bold">
-                        {latency === null || latency === undefined
-                          ? "N/A"
-                          : `${Math.round(latency)} ms`}
+                    {/* Supported Models List Preview */}
+                    <div className="mt-6 border-t border-white/[0.08] pt-5">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        Deployed Models & Pricing (Per 1M Tokens)
                       </p>
-                    </div>
 
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                      <Activity size={17} className="mb-2 text-emerald-400" />
-                      <p className="text-xs text-zinc-500">Uptime</p>
-                      <p className="mt-1 text-sm font-bold">
-                        {uptime === null || uptime === undefined
-                          ? "N/A"
-                          : `${uptime.toFixed(2)}%`}
-                      </p>
-                    </div>
+                      <div className="max-h-64 space-y-2.5 overflow-y-auto pr-1">
+                        {provider.models?.map((listing) => {
+                          const { model } = listing;
+                          if (!model) return null;
 
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-                      <CheckCircle2 size={17} className="mb-2 text-violet-400" />
-                      <p className="text-xs text-zinc-500">Available</p>
-                      <p className="mt-1 text-sm font-bold">
-                        {availableCount}/{provider.models.length}
-                      </p>
-                    </div>
+                          const inputPriceDisplay = formatPrice(
+                            listing.inputPricePerMillion ?? model.inputPrice
+                          );
+                          const outputPriceDisplay = formatPrice(
+                            listing.outputPricePerMillion ?? model.outputPrice
+                          );
 
-                  </div>
+                          return (
+                            <div
+                              key={listing.id}
+                              className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-3.5 transition-all duration-200 hover:border-violet-500/30 hover:bg-white/[0.04]"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <Link
+                                    href={`/models/${model.slug}`}
+                                    className="text-sm font-bold text-slate-200 hover:text-violet-400"
+                                  >
+                                    {model.name}
+                                  </Link>
+                                  <p className="mt-0.5 text-xs text-slate-400">
+                                    {model.category || "General"} · {model.contextWindow || "Standard"}
+                                  </p>
+                                </div>
 
-                  {/* SUPPORTED MODELS */}
+                                <span
+                                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                    listing.isAvailable
+                                      ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                      : "border border-red-500/30 bg-red-500/10 text-red-400"
+                                  }`}
+                                >
+                                  {listing.isAvailable ? (
+                                    <CheckCircle2 size={10} />
+                                  ) : (
+                                    <AlertCircle size={10} />
+                                  )}
+                                  {listing.isAvailable ? "Ready" : "Inactive"}
+                                </span>
+                              </div>
 
-                  <div className="mt-6 border-t border-white/[0.07] pt-5">
+                              <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono text-emerald-400">
+                                    In: {inputPriceDisplay}
+                                  </span>
+                                  <span className="text-slate-600">•</span>
+                                  <span className="font-mono text-violet-300">
+                                    Out: {outputPriceDisplay}
+                                  </span>
+                                </div>
 
-                    <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                      Supported models & pricing
-                    </p>
-
-                    <div className="space-y-3">
-
-                      {provider.models.map((listing) => {
-                        const { model } = listing;
-
-                        return (
-                          <div
-                            key={listing.id}
-                            className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
-                          >
-
-                            <div className="flex items-start justify-between gap-3">
-
-                              <div>
                                 <Link
                                   href={`/models/${model.slug}`}
-                                  className="text-sm font-semibold hover:text-violet-400"
+                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-cyan-400 hover:text-cyan-300"
                                 >
-                                  {model.name}
+                                  Specs
+                                  <ExternalLink size={10} />
                                 </Link>
-
-                                <p className="mt-1 text-xs text-zinc-500">
-                                  {model.category} · {model.contextWindow}
-                                </p>
                               </div>
-
-                              <span
-                                className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium ${
-                                  listing.isAvailable
-                                    ? "bg-emerald-500/10 text-emerald-400"
-                                    : "bg-red-500/10 text-red-400"
-                                }`}
-                              >
-                                {listing.isAvailable ? (
-                                  <CheckCircle2 size={11} />
-                                ) : (
-                                  <AlertCircle size={11} />
-                                )}
-
-                                {listing.isAvailable ? "Available" : "Unavailable"}
-                              </span>
-
                             </div>
-
-                            <div className="mt-4 grid grid-cols-2 gap-3">
-
-                              <div>
-                                <div className="mb-1 flex items-center gap-1.5 text-xs text-zinc-500">
-                                  <CircleDollarSign size={13} />
-                                  Input / 1M tokens
-                                </div>
-
-                                <p className="text-sm font-semibold text-white">
-                                  {formatPrice(
-                                    listing.inputPricePerMillion ?? listing.model?.inputPrice
-                                  )}
-                                </p>
-                              </div>
-
-                              <div>
-                                <div className="mb-1 flex items-center gap-1.5 text-xs text-zinc-500">
-                                  <CircleDollarSign size={13} />
-                                  Output / 1M tokens
-                                </div>
-
-                                <p className="text-sm font-semibold text-white">
-                                  {formatPrice(
-                                    listing.outputPricePerMillion ?? listing.model?.outputPrice
-                                  )}
-                                </p>
-                              </div>
-
-                            </div>
-
-                            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
-
-                              <p className="flex items-center gap-1.5 text-xs text-zinc-500">
-                                <Clock size={12} />
-                                {listing.latencyMs === null || listing.latencyMs === undefined
-                                  ? "Latency N/A"
-                                  : `${listing.latencyMs} ms latency`}
-                              </p>
-
-                              <Link
-                                href={`/models/${model.slug}`}
-                                className="inline-flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300"
-                              >
-                                Model details
-                                <ExternalLink size={12} />
-                              </Link>
-
-                            </div>
-
-                          </div>
-                        );
-                      })}
-
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-
                 </article>
               );
             })}
-
           </div>
         )}
 
+        {/* Empty State */}
         {!loading && !error && filteredProviders.length === 0 && (
-          <p className="rounded-xl border border-white/10 p-8 text-center text-sm text-zinc-500">
-            No providers found.
-          </p>
+          <div className="rounded-2xl border border-white/[0.08] bg-slate-900/40 p-12 text-center backdrop-blur-xl">
+            <Building2 className="mx-auto mb-3 text-slate-500" size={36} />
+            <p className="text-base font-bold text-white">No providers found</p>
+            <p className="mt-1 text-xs text-slate-400">
+              No host matched your search query &quot;{search}&quot;.
+            </p>
+            <button
+              onClick={() => setSearch("")}
+              className="mt-4 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-xs font-semibold text-violet-300 transition-all hover:bg-violet-500/20"
+            >
+              Clear Search Query
+            </button>
+          </div>
         )}
 
-        <div className="mt-8 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
-          <p className="text-xs leading-5 text-amber-300/80">
-            Demo data notice: Provider pricing and performance metrics are
-            illustrative values for demonstration purposes. They are not
-            live measurements or verified provider service-level guarantees.
+        {/* Footer & Telemetry Disclaimer */}
+        <div className="mt-12 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-xs text-slate-400">
+          <p>
+            <span className="font-bold text-slate-300">Infrastructure Note:</span> Provider token rates and latency statistics represent aggregated real-time observations through OpenRouter endpoint routing and provider telemetry.
           </p>
         </div>
 
-        <footer className="mt-12 border-t border-white/[0.07] py-6 text-xs text-zinc-500">
-          © 2026 OneAtlas. AI intelligence, unified.
+        <footer className="mt-8 border-t border-white/[0.08] py-6 text-center text-xs text-slate-500">
+          © 2026 OneAtlas. High-performance AI model intelligence and provider routing.
         </footer>
-
       </div>
     </main>
   );

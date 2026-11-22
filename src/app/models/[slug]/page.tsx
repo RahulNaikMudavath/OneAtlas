@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -14,6 +13,11 @@ import {
   Building2,
   BarChart3,
   Globe,
+  Sparkles,
+  ExternalLink,
+  Layers,
+  CircleDollarSign,
+  Calendar,
 } from "lucide-react";
 
 type APIModel = {
@@ -22,8 +26,9 @@ type APIModel = {
   name: string;
   category: string;
   contextWindow: string;
-  inputPrice: number;
-  outputPrice: number;
+  inputPrice?: number | null;
+  outputPrice?: number | null;
+  releaseDate?: string | null;
   description: string | null;
   capabilities: string[];
   modalities: string[];
@@ -49,6 +54,13 @@ type APIModel = {
     source: string | null;
   }[];
 };
+
+function formatPrice(value?: number | null): string {
+  if (value === null || value === undefined) return "N/A";
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "N/A";
+  return `$${num.toFixed(2)}`;
+}
 
 function ModelDetailsContent() {
   const params = useParams<{ slug: string }>();
@@ -94,37 +106,29 @@ function ModelDetailsContent() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#08090d] text-white">
-        <p className="text-sm text-zinc-400">
-          Loading model intelligence...
-        </p>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#08090d] px-5 text-white">
-        <div className="text-center">
-          <p className="text-sm text-red-400">{error}</p>
-          <Link href="/" className="mt-5 inline-block text-sm text-violet-400">
-            Return to OneAtlas
-          </Link>
+      <main className="flex min-h-screen items-center justify-center bg-[#07080f] text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+          <p className="text-sm font-medium text-slate-400">
+            Loading model intelligence...
+          </p>
         </div>
       </main>
     );
   }
 
-  if (!model) {
+  if (error || !model) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#08090d] px-5 text-white">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Model not found</h1>
-          <p className="mt-2 text-sm text-zinc-400">
-            This model does not exist in the OneAtlas catalogue.
+      <main className="flex min-h-screen flex-col items-center justify-center bg-[#07080f] px-5 text-center text-white">
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-8 backdrop-blur-xl">
+          <p className="text-base font-bold text-red-300">
+            {error || "Model not found in intelligence database."}
           </p>
-          <Link href="/" className="mt-5 inline-block text-sm text-violet-400">
-            Return to OneAtlas
+          <Link
+            href="/"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/20"
+          >
+            <ArrowLeft size={14} /> Back to Catalog
           </Link>
         </div>
       </main>
@@ -132,154 +136,170 @@ function ModelDetailsContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#08090d] px-5 py-10 text-white sm:px-10">
-      <div className="mx-auto max-w-6xl">
+    <main className="relative min-h-screen overflow-hidden bg-[#07080f] px-5 py-8 text-white sm:px-10">
+      {/* Ambient Aurora Glow Background */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -left-48 -top-48 h-[600px] w-[600px] rounded-full bg-violet-600/10 blur-[140px]" />
+        <div className="absolute -right-48 top-1/4 h-[600px] w-[600px] rounded-full bg-cyan-600/10 blur-[150px]" />
+        <div className="absolute bottom-10 left-1/3 h-[500px] w-[500px] rounded-full bg-fuchsia-600/08 blur-[160px]" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-5xl">
+        {/* Back Link */}
         <Link
           href="/"
-          className="mb-10 inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white"
+          className="group mb-8 inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-xs font-medium text-slate-300 backdrop-blur-md transition-all duration-200 hover:border-violet-500/40 hover:bg-violet-500/10 hover:text-white"
         >
-          <ArrowLeft size={17} />
-          Back to OneAtlas
+          <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
+          Back to Explorer
         </Link>
 
-        {/* Model overview */}
-        <section className="rounded-3xl border border-white/[0.08] bg-[#101117] p-7 sm:p-10">
-          <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-600/20 text-violet-400">
-            <BrainCircuit size={32} />
+        {/* Hero Card */}
+        <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-slate-900/50 p-8 backdrop-blur-xl">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-violet-300">
+              <BrainCircuit size={14} className="text-violet-400" />
+              {model.category} Architecture
+            </div>
+
+            {model.releaseDate && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-xs text-slate-400">
+                <Calendar size={12} className="text-violet-400" />
+                Released {new Date(model.releaseDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </span>
+            )}
           </div>
 
-          <p className="mb-3 text-sm font-medium text-violet-400">
-            {model.company.name} / AI MODEL
-          </p>
-
-          <h1 className="text-3xl font-bold sm:text-5xl">
+          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-5xl">
             {model.name}
           </h1>
 
-          <p className="mt-5 max-w-2xl leading-7 text-zinc-400">
-            {model.description || "No model description is available yet."}
+          <p className="mt-2 text-sm font-medium text-violet-300">
+            Engineered by {model.company?.name || "Independent"}
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-2">
-            {model.capabilities.map((capability) => (
-              <span
-                key={capability}
-                className="rounded-lg border border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs text-violet-300"
-              >
-                {capability}
-              </span>
-            ))}
+          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-300 sm:text-base">
+            {model.description ||
+              `${model.name} is a high-performance foundation model engineered by ${model.company?.name || "the developer"}, supporting diverse tasks including reasoning, analysis, and API orchestration.`}
+          </p>
+        </div>
+
+        {/* Technical Specs 4-Grid */}
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-white/[0.08] bg-slate-900/50 p-5 backdrop-blur-xl">
+            <Building2 className="mb-4 text-violet-400" size={20} />
+            <p className="text-xs uppercase tracking-wider text-slate-400">Publisher</p>
+            <p className="mt-1 text-lg font-bold text-white">{model.company?.name || "Independent"}</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.08] bg-slate-900/50 p-5 backdrop-blur-xl">
+            <Zap className="mb-4 text-cyan-400" size={20} />
+            <p className="text-xs uppercase tracking-wider text-slate-400">Category</p>
+            <p className="mt-1 text-lg font-bold text-white">{model.category}</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.08] bg-slate-900/50 p-5 backdrop-blur-xl">
+            <Code2 className="mb-4 text-amber-400" size={20} />
+            <p className="text-xs uppercase tracking-wider text-slate-400">Context Window</p>
+            <p className="mt-1 font-mono text-lg font-bold text-white">{model.contextWindow}</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.08] bg-slate-900/50 p-5 backdrop-blur-xl">
+            <ImageIcon className="mb-4 text-emerald-400" size={20} />
+            <p className="text-xs uppercase tracking-wider text-slate-400">Modalities</p>
+            <p className="mt-1 text-lg font-bold text-white">{(model.modalities || []).join(", ") || "Text"}</p>
           </div>
         </section>
 
-        {/* Specifications */}
-        <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: "Company", value: model.company.name, icon: Building2 },
-            { label: "Category", value: model.category, icon: Zap },
-            { label: "Context Window", value: model.contextWindow, icon: Code2 },
-            { label: "Modalities", value: model.modalities.join(", "), icon: ImageIcon },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="rounded-2xl border border-white/[0.08] bg-[#101117] p-5"
-            >
-              <item.icon className="mb-5 text-violet-400" size={22} />
-              <p className="text-xs text-zinc-500">{item.label}</p>
-              <p className="mt-2 text-lg font-semibold">{item.value}</p>
-            </div>
-          ))}
-        </section>
-
-        {/* Pricing */}
-        <section className="mt-8 rounded-2xl border border-white/[0.08] bg-[#101117] p-7">
-          <h2 className="text-xl font-bold">Pricing Information</h2>
-          <p className="mt-2 text-sm text-zinc-500">
-            Demonstration pricing per one million tokens.
+        {/* Pricing Matrix */}
+        <section className="mt-8 rounded-2xl border border-white/[0.08] bg-slate-900/50 p-7 backdrop-blur-xl">
+          <div className="flex items-center gap-2">
+            <CircleDollarSign className="text-emerald-400" size={20} />
+            <h2 className="text-xl font-bold text-white">Pricing Structure</h2>
+          </div>
+          <p className="mt-1 text-xs text-slate-400">
+            Standard pricing per one million tokens across default inference routes.
           </p>
 
-          <div className="mt-7 grid gap-5 sm:grid-cols-2">
-            <div className="rounded-xl bg-white/[0.03] p-5">
-              <p className="text-sm text-zinc-400">Input Price</p>
-              <p className="mt-3 text-3xl font-bold">
-                ${model.inputPrice.toFixed(2)}
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+              <span className="text-xs uppercase tracking-wider text-slate-400">Prompt / Input Price</span>
+              <p className="mt-2 font-mono text-3xl font-extrabold text-emerald-400">
+                {formatPrice(model.inputPrice)}
               </p>
-              <p className="mt-2 text-xs text-zinc-500">Per 1M tokens</p>
+              <p className="mt-1 text-xs text-slate-500">Per 1,000,000 input tokens</p>
             </div>
 
-            <div className="rounded-xl bg-white/[0.03] p-5">
-              <p className="text-sm text-zinc-400">Output Price</p>
-              <p className="mt-3 text-3xl font-bold">
-                ${model.outputPrice.toFixed(2)}
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+              <span className="text-xs uppercase tracking-wider text-slate-400">Completion / Output Price</span>
+              <p className="mt-2 font-mono text-3xl font-extrabold text-violet-300">
+                {formatPrice(model.outputPrice)}
               </p>
-              <p className="mt-2 text-xs text-zinc-500">Per 1M tokens</p>
+              <p className="mt-1 text-xs text-slate-500">Per 1,000,000 output tokens</p>
             </div>
           </div>
         </section>
 
-        {/* Provider ecosystem */}
-        <section className="mt-8 rounded-2xl border border-white/[0.08] bg-[#101117] p-7">
-          <div className="mb-5 flex items-center gap-3">
-            <Globe className="text-violet-400" size={22} />
-            <h2 className="text-xl font-bold">Available Providers</h2>
+        {/* Provider Ecosystem */}
+        <section className="mt-8 rounded-2xl border border-white/[0.08] bg-slate-900/50 p-7 backdrop-blur-xl">
+          <div className="flex items-center gap-2">
+            <Globe className="text-violet-400" size={20} />
+            <h2 className="text-xl font-bold text-white">Available Host Providers</h2>
           </div>
+          <p className="mt-1 text-xs text-slate-400">
+            Inference endpoints supporting deployment of {model.name}.
+          </p>
 
-          {model.providers.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
+          {(model.providers || []).length > 0 ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {model.providers.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
+                  className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all hover:border-violet-500/40"
                 >
-                  <p className="font-semibold">{item.provider.name}</p>
+                  <p className="font-bold text-white">{item.provider.name}</p>
                   {item.provider.website && (
                     <a
                       href={item.provider.website}
                       target="_blank"
                       rel="noreferrer"
-                      className="mt-2 inline-block text-xs text-violet-400 hover:text-violet-300"
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs text-violet-400 hover:text-cyan-300"
                     >
-                      Visit provider website
+                      Visit provider site <ExternalLink size={11} />
                     </a>
                   )}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-zinc-500">
-              No provider information has been added yet.
+            <p className="mt-4 text-xs italic text-slate-500">
+              Provider routing available through OpenRouter unified proxy.
             </p>
           )}
         </section>
 
-        {/* Benchmarks */}
-        <section className="mt-8 rounded-2xl border border-white/[0.08] bg-[#101117] p-7">
-          <div className="mb-5 flex items-center gap-3">
-            <BarChart3 className="text-violet-400" size={22} />
-            <h2 className="text-xl font-bold">Benchmark Performance</h2>
+        {/* Benchmarks Section */}
+        <section className="mt-8 rounded-2xl border border-white/[0.08] bg-slate-900/50 p-7 backdrop-blur-xl">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="text-amber-400" size={20} />
+            <h2 className="text-xl font-bold text-white">Artificial Analysis Benchmark Indices</h2>
           </div>
+          <p className="mt-1 text-xs text-slate-400">
+            Empirical quality and performance evaluation scores.
+          </p>
 
-          {model.benchmarks.length > 0 ? (
-            <div className="space-y-5">
+          {(model.benchmarks || []).length > 0 ? (
+            <div className="mt-6 space-y-4">
               {model.benchmarks.map((benchmark) => (
-                <div key={benchmark.id}>
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium">
-                        {benchmark.name}
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        {benchmark.category}
-                      </p>
-                    </div>
-                    <span className="font-semibold text-violet-300">
-                      {benchmark.score}/100
-                    </span>
+                <div key={benchmark.id} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-300">{benchmark.name}</span>
+                    <span className="font-mono font-bold text-amber-300">{benchmark.score} / 100</span>
                   </div>
 
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
                     <div
-                      className="h-full rounded-full bg-violet-500"
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 to-violet-500"
                       style={{
                         width: `${Math.min(Math.max(benchmark.score, 0), 100)}%`,
                       }}
@@ -287,7 +307,7 @@ function ModelDetailsContent() {
                   </div>
 
                   {benchmark.source && (
-                    <p className="mt-1 text-[11px] text-zinc-500">
+                    <p className="text-[10px] text-slate-500">
                       Source: {benchmark.source}
                     </p>
                   )}
@@ -295,37 +315,30 @@ function ModelDetailsContent() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-zinc-500">
-              No benchmark records are available for this model.
+            <p className="mt-4 text-xs italic text-slate-500">
+              No Artificial Analysis benchmark indices recorded for this specific model variant yet.
             </p>
           )}
-
-          <p className="mt-6 text-xs leading-5 text-zinc-500">
-            Benchmark scores are illustrative demonstration values, not
-            independently verified performance results.
-          </p>
         </section>
 
-        {/* Capabilities */}
-        <section className="mt-8 rounded-2xl border border-white/[0.08] bg-[#101117] p-7">
-          <h2 className="mb-5 text-xl font-bold">
-            Model Capabilities
-          </h2>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            {model.capabilities.map((capability) => (
-              <div key={capability} className="flex items-center gap-3">
-                <CheckCircle2 size={18} className="text-emerald-400" />
-                <span className="text-sm text-zinc-300">
-                  {capability}
-                </span>
+        {/* Capabilities Section */}
+        <section className="mt-8 rounded-2xl border border-white/[0.08] bg-slate-900/50 p-7 backdrop-blur-xl">
+          <h2 className="text-xl font-bold text-white">Supported Capabilities</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {(model.capabilities || []).map((capability) => (
+              <div
+                key={capability}
+                className="flex items-center gap-2.5 rounded-xl border border-white/[0.05] bg-white/[0.02] p-3 text-sm text-slate-200"
+              >
+                <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
+                <span>{capability}</span>
               </div>
             ))}
           </div>
         </section>
 
-        <footer className="mt-12 border-t border-white/[0.07] py-6 text-xs text-zinc-500">
-          © 2026 OneAtlas. AI intelligence, unified.
+        <footer className="mt-12 border-t border-white/[0.08] py-6 text-center text-xs text-slate-500">
+          © 2026 OneAtlas. AI Model Intelligence & Architectural Specs.
         </footer>
       </div>
     </main>
@@ -336,10 +349,8 @@ export default function ModelDetails() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-screen items-center justify-center bg-[#08090d] text-white">
-          <p className="text-sm text-zinc-400">
-            Loading model intelligence...
-          </p>
+        <main className="flex min-h-screen items-center justify-center bg-[#07080f] text-white">
+          <p className="text-sm text-slate-400">Loading model intelligence...</p>
         </main>
       }
     >

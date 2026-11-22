@@ -68,12 +68,13 @@ model ModelProvider {
   isAvailable    Boolean  @default(true)
   lastCheckedAt  DateTime?
 
-  endpointTag         String   @default("default")
+    endpointTag         String   @default("default")
   endpointName        String?
   serviceTier         String?
   maxPromptTokens     Int?
   maxCompletionTokens Int?
   uptimeLast30m       Float?
+  endpointStatus      Int?
 
   model      Model    @relation(fields: [modelId], references: [id])
   provider   Provider @relation(fields: [providerId], references: [id])

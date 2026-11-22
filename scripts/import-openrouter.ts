@@ -272,6 +272,7 @@ async function importModel(model: OpenRouterModel) {
         maxCompletionTokens: endpoint.max_completion_tokens ?? null,
         uptimeLast30m: endpoint.uptime_last_30m ?? null,
         latencyMs: endpoint.latency_last_30m ?? null,
+        endpointStatus: endpoint.status ?? null,
         lastCheckedAt: new Date(),
       },
       create: {
@@ -286,6 +287,8 @@ async function importModel(model: OpenRouterModel) {
         maxCompletionTokens: endpoint.max_completion_tokens ?? null,
         uptimeLast30m: endpoint.uptime_last_30m ?? null,
         latencyMs: endpoint.latency_last_30m ?? null,
+        endpointStatus: endpoint.status ?? null,
+        isAvailable: endpoint.status !== -1,
         lastCheckedAt: new Date(),
       },
     });
