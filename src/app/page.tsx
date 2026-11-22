@@ -39,6 +39,8 @@ type APIModel = {
   contextWindow: string;
   inputPrice: number;
   outputPrice: number;
+  modalities: string[];
+  capabilities: string[];
   company: {
     name: string;
   };
@@ -49,6 +51,12 @@ export default function Home() {
   const [category, setCategory] = useState("All Models");
   const [selected, setSelected] = useState<string[]>([]);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [providerFilter, setProviderFilter] = useState("All");
+  const [modalityFilter, setModalityFilter] = useState("All");
+  const [contextFilter, setContextFilter] = useState("All");
+  const [maxInputPrice, setMaxInputPrice] = useState("");
+  const [maxOutputPrice, setMaxOutputPrice] = useState("");
+  const [sortBy, setSortBy] = useState("name");
 
   const [models, setModels] = useState<APIModel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +91,14 @@ export default function Home() {
   }, []);
 
   const filteredModels = useMemo(() => {
-    return models.filter((model) => {
+    const contextValue = (value: string) => {
+      const number = parseFloat(value);
+      return value.toUpperCase().includes("M")
+        ? number * 1000
+        : number;
+    };
+
+    const filtered = models.filter((model) => {
       const matchesSearch =
         model.name.toLowerCase().includes(search.toLowerCase()) ||
         model.company.name.toLowerCase().includes(search.toLowerCase());
@@ -91,9 +106,56 @@ export default function Home() {
       const matchesCategory =
         category === "All Models" || model.category === category;
 
-      return matchesSearch && matchesCategory;
+      const matchesProvider =
+        providerFilter === "All" ||
+        model.company.name === providerFilter;
+
+      const matchesModality =
+        modalityFilter === "All" ||
+        model.modalities?.includes(modalityFilter);
+
+      const matchesContext =
+        contextFilter === "All" ||
+        contextValue(model.contextWindow) >= contextValue(contextFilter);
+
+      const matchesInputPrice =
+        maxInputPrice === "" ||
+        model.inputPrice <= Number(maxInputPrice);
+
+      const matchesOutputPrice =
+        maxOutputPrice === "" ||
+        model.outputPrice <= Number(maxOutputPrice);
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesProvider &&
+        matchesModality &&
+        matchesContext &&
+        matchesInputPrice &&
+        matchesOutputPrice
+      );
     });
-  }, [models, search, category]);
+
+    return filtered.sort((a, b) => {
+      if (sortBy === "inputPrice") return a.inputPrice - b.inputPrice;
+      if (sortBy === "outputPrice") return a.outputPrice - b.outputPrice;
+      if (sortBy === "context") {
+        return contextValue(b.contextWindow) - contextValue(a.contextWindow);
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [
+    models,
+    search,
+    category,
+    providerFilter,
+    modalityFilter,
+    contextFilter,
+    maxInputPrice,
+    maxOutputPrice,
+    sortBy,
+  ]);
 
   const selectedModels = models.filter((model) =>
     selected.includes(model.name)
@@ -335,6 +397,121 @@ export default function Home() {
                   </button>
                 ))}
               </div>
+
+              {/* Advanced Filters */}
+              <section className="rounded-2xl border border-white/[0.08] bg-[#101117] p-5 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold">Advanced Filters</h3>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Refine models by provider, capability, context and pricing.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setProviderFilter("All");
+                      setModalityFilter("All");
+                      setContextFilter("All");
+                      setMaxInputPrice("");
+                      setMaxOutputPrice("");
+                      setSortBy("name");
+                    }}
+                    className="text-xs text-violet-400 hover:text-violet-300"
+                  >
+                    Reset filters
+                  </button>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <label className="mb-2 block text-xs text-zinc-400">Provider</label>
+                    <select
+                      value={providerFilter}
+                      onChange={(e) => setProviderFilter(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-[#08090d] p-3 text-sm text-white"
+                    >
+                      <option value="All">All Providers</option>
+                      {[...new Set(models.map((m) => m.company.name))].sort().map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs text-zinc-400">Modality</label>
+                    <select
+                      value={modalityFilter}
+                      onChange={(e) => setModalityFilter(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-[#08090d] p-3 text-sm text-white"
+                    >
+                      <option value="All">All Modalities</option>
+                      {[...new Set(models.flatMap((m) => m.modalities || []))].sort().map((item) => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs text-zinc-400">Minimum Context Window</label>
+                    <select
+                      value={contextFilter}
+                      onChange={(e) => setContextFilter(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-[#08090d] p-3 text-sm text-white"
+                    >
+                      <option value="All">Any Context</option>
+                      <option value="128K">128K+</option>
+                      <option value="200K">200K+</option>
+                      <option value="400K">400K+</option>
+                      <option value="1M">1M+</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs text-zinc-400">
+                      Max Input Price ($ / 1M tokens)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={maxInputPrice}
+                      onChange={(e) => setMaxInputPrice(e.target.value)}
+                      placeholder="No limit"
+                      className="w-full rounded-lg border border-white/10 bg-[#08090d] p-3 text-sm text-white outline-none focus:border-violet-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs text-zinc-400">
+                      Max Output Price ($ / 1M tokens)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={maxOutputPrice}
+                      onChange={(e) => setMaxOutputPrice(e.target.value)}
+                      placeholder="No limit"
+                      className="w-full rounded-lg border border-white/10 bg-[#08090d] p-3 text-sm text-white outline-none focus:border-violet-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs text-zinc-400">Sort Models</label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-[#08090d] p-3 text-sm text-white"
+                    >
+                      <option value="name">Model Name</option>
+                      <option value="inputPrice">Lowest Input Price</option>
+                      <option value="outputPrice">Lowest Output Price</option>
+                      <option value="context">Largest Context Window</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
 
               {/* Model Table */}
               <div className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#101117]">
