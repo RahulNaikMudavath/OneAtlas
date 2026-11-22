@@ -103,12 +103,14 @@ async function main() {
 
     await prisma.modelProvider.upsert({
       where: {
-        modelId_providerId: {
+        modelId_providerId_endpointTag: {
           modelId: savedModel.id,
           providerId: provider.id,
+          endpointTag: "default",
         },
       },
       update: {
+        endpointTag: "default",
         inputPricePerMillion: inputPrice,
         outputPricePerMillion: outputPrice,
         latencyMs: metrics?.latencyMs ?? null,
@@ -119,6 +121,7 @@ async function main() {
       create: {
         modelId: savedModel.id,
         providerId: provider.id,
+        endpointTag: "default",
         inputPricePerMillion: inputPrice,
         outputPricePerMillion: outputPrice,
         latencyMs: metrics?.latencyMs ?? null,
