@@ -41,6 +41,8 @@ type APIModel = {
   outputPrice: number;
   modalities: string[];
   capabilities: string[];
+  releaseDate?: string | null;
+  sourceCreatedAt?: string | null;
   company: {
     name: string;
   };
@@ -53,6 +55,7 @@ export default function Home() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [providerFilter, setProviderFilter] = useState("All");
   const [modalityFilter, setModalityFilter] = useState("All");
+  const [capabilityFilter, setCapabilityFilter] = useState("All");
   const [contextFilter, setContextFilter] = useState("All");
   const [maxInputPrice, setMaxInputPrice] = useState("");
   const [maxOutputPrice, setMaxOutputPrice] = useState("");
@@ -114,6 +117,12 @@ export default function Home() {
         modalityFilter === "All" ||
         model.modalities?.includes(modalityFilter);
 
+      const matchesCapability =
+        capabilityFilter === "All" ||
+        model.capabilities?.some((cap) =>
+          cap.toLowerCase().includes(capabilityFilter.toLowerCase())
+        );
+
       const matchesContext =
         contextFilter === "All" ||
         contextValue(model.contextWindow) >= contextValue(contextFilter);
@@ -131,6 +140,7 @@ export default function Home() {
         matchesCategory &&
         matchesProvider &&
         matchesModality &&
+        matchesCapability &&
         matchesContext &&
         matchesInputPrice &&
         matchesOutputPrice
@@ -143,6 +153,15 @@ export default function Home() {
       if (sortBy === "context") {
         return contextValue(b.contextWindow) - contextValue(a.contextWindow);
       }
+      if (sortBy === "releaseDate") {
+        const timeA = a.releaseDate
+          ? new Date(a.releaseDate).getTime()
+          : (a.sourceCreatedAt ? new Date(a.sourceCreatedAt).getTime() : 0);
+        const timeB = b.releaseDate
+          ? new Date(b.releaseDate).getTime()
+          : (b.sourceCreatedAt ? new Date(b.sourceCreatedAt).getTime() : 0);
+        return timeB - timeA;
+      }
       return a.name.localeCompare(b.name);
     });
   }, [
@@ -151,6 +170,7 @@ export default function Home() {
     category,
     providerFilter,
     modalityFilter,
+    capabilityFilter,
     contextFilter,
     maxInputPrice,
     maxOutputPrice,
@@ -417,6 +437,7 @@ export default function Home() {
                     onClick={() => {
                       setProviderFilter("All");
                       setModalityFilter("All");
+                      setCapabilityFilter("All");
                       setContextFilter("All");
                       setMaxInputPrice("");
                       setMaxOutputPrice("");
@@ -428,7 +449,7 @@ export default function Home() {
                   </button>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
                     <label className="mb-2 block text-xs text-zinc-400">Provider</label>
                     <select
@@ -452,6 +473,20 @@ export default function Home() {
                     >
                       <option value="All">All Modalities</option>
                       {[...new Set(models.flatMap((m) => m.modalities || []))].sort().map((item) => (
+                        <option key={item} value={item}>{item}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs text-zinc-400">Capability</label>
+                    <select
+                      value={capabilityFilter}
+                      onChange={(e) => setCapabilityFilter(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-[#08090d] p-3 text-sm text-white"
+                    >
+                      <option value="All">All Capabilities</option>
+                      {[...new Set(models.flatMap((m) => m.capabilities || []))].sort().map((item) => (
                         <option key={item} value={item}>{item}</option>
                       ))}
                     </select>
@@ -502,7 +537,7 @@ export default function Home() {
                     />
                   </div>
 
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className="mb-2 block text-xs text-zinc-400">Sort Models</label>
                     <select
                       value={sortBy}
@@ -510,6 +545,7 @@ export default function Home() {
                       className="w-full rounded-lg border border-white/10 bg-[#08090d] p-3 text-sm text-white"
                     >
                       <option value="name">Model Name</option>
+                      <option value="releaseDate">Newest Release Date</option>
                       <option value="inputPrice">Lowest Input Price</option>
                       <option value="outputPrice">Lowest Output Price</option>
                       <option value="context">Largest Context Window</option>
