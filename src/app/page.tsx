@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   Network,
+  Code2,
 } from "lucide-react";
 
 const companyColors: Record<string, string> = {
@@ -215,6 +216,7 @@ export default function Home() {
               { name: "Rankings", icon: Trophy },
               { name: "AI Companies", icon: Building2 },
               { name: "Providers", icon: Network },
+              { name: "Developer Playground", icon: Code2 },
             ].map((item) => (
               <button
                 key={item.name}
@@ -235,6 +237,10 @@ export default function Home() {
 
                   if (item.name === "Providers") {
                     window.location.href = "/providers";
+                  }
+
+                  if (item.name === "Developer Playground") {
+                    window.location.href = "/playground";
                   }
 
                   setMobileMenu(false);
