@@ -17,7 +17,43 @@ async function main() {
     "llama-4-maverick": { overall: 86, reasoning: 85, coding: 87, knowledge: 88 },
   };
 
+  // Illustrative provider performance data.
+  // These are demo values, NOT live measurements.
+  const providerMetrics: Record<
+    string,
+    { latencyMs: number; uptimePercent: number; isAvailable: boolean }
+  > = {
+    "gpt-5-1": {
+      latencyMs: 320,
+      uptimePercent: 99.95,
+      isAvailable: true,
+    },
+    "claude-sonnet-4-5": {
+      latencyMs: 280,
+      uptimePercent: 99.92,
+      isAvailable: true,
+    },
+    "gemini-2-5-pro": {
+      latencyMs: 250,
+      uptimePercent: 99.90,
+      isAvailable: true,
+    },
+    "deepseek-v3": {
+      latencyMs: 410,
+      uptimePercent: 99.80,
+      isAvailable: true,
+    },
+    "llama-4-maverick": {
+      latencyMs: 350,
+      uptimePercent: 99.85,
+      isAvailable: true,
+    },
+  };
+
   for (const model of models) {
+    const inputPrice = Number(model.input.replace("$", ""));
+    const outputPrice = Number(model.output.replace("$", ""));
+
     const company = await prisma.company.upsert({
       where: { name: model.company },
       update: {},
@@ -42,8 +78,8 @@ async function main() {
         name: model.name,
         category: model.category,
         contextWindow: model.context,
-        inputPrice: Number(model.input.replace("$", "")),
-        outputPrice: Number(model.output.replace("$", "")),
+        inputPrice,
+        outputPrice,
         description: model.description,
         capabilities: model.capabilities,
         modalities: model.modalities,
@@ -54,14 +90,16 @@ async function main() {
         name: model.name,
         category: model.category,
         contextWindow: model.context,
-        inputPrice: Number(model.input.replace("$", "")),
-        outputPrice: Number(model.output.replace("$", "")),
+        inputPrice,
+        outputPrice,
         description: model.description,
         capabilities: model.capabilities,
         modalities: model.modalities,
         companyId: company.id,
       },
     });
+
+    const metrics = providerMetrics[model.slug];
 
     await prisma.modelProvider.upsert({
       where: {
@@ -70,10 +108,23 @@ async function main() {
           providerId: provider.id,
         },
       },
-      update: {},
+      update: {
+        inputPricePerMillion: inputPrice,
+        outputPricePerMillion: outputPrice,
+        latencyMs: metrics?.latencyMs ?? null,
+        uptimePercent: metrics?.uptimePercent ?? null,
+        isAvailable: metrics?.isAvailable ?? true,
+        lastCheckedAt: new Date(),
+      },
       create: {
         modelId: savedModel.id,
         providerId: provider.id,
+        inputPricePerMillion: inputPrice,
+        outputPricePerMillion: outputPrice,
+        latencyMs: metrics?.latencyMs ?? null,
+        uptimePercent: metrics?.uptimePercent ?? null,
+        isAvailable: metrics?.isAvailable ?? true,
+        lastCheckedAt: new Date(),
       },
     });
 
@@ -113,7 +164,7 @@ async function main() {
       }
     }
 
-    console.log(`Seeded: ${model.name}`);
+    console.log(`Seeded: ${model.name} with provider intelligence`);
   }
 
   console.log("OneAtlas database seeding completed!");
