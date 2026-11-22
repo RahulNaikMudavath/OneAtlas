@@ -26,6 +26,8 @@ type ProviderModel = {
   outputPricePerMillion?: number | null;
   latencyMs?: number | null;
   uptimePercent?: number | null;
+  uptimeLast30m?: number | null;
+  endpointStatus?: number | null;
   isAvailable?: boolean;
   lastCheckedAt?: string | null;
   model: {
@@ -87,6 +89,14 @@ function formatLatency(value: number | null | undefined) {
   return `${Math.round(num)} ms`;
 }
 
+function formatEndpointStatus(value: number | null | undefined) {
+  if (value === null || value === undefined) {
+    return "Unknown";
+  }
+
+  return `Code ${value}`;
+}
+
 export default function ProvidersPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [search, setSearch] = useState("");
@@ -134,8 +144,8 @@ export default function ProvidersPage() {
 
   const allListings = providers.flatMap((provider) => provider.models || []);
 
-  const availableListings = allListings.filter(
-    (listing) => listing.isAvailable
+  const endpointsWithStatus = allListings.filter(
+    (listing) => typeof listing.endpointStatus === "number"
   ).length;
 
   const averageLatency = average(
@@ -143,7 +153,7 @@ export default function ProvidersPage() {
   );
 
   const averageUptime = average(
-    allListings.map((listing) => listing.uptimePercent)
+    allListings.map((listing) => listing.uptimeLast30m)
   );
 
   return (
@@ -180,7 +190,7 @@ export default function ProvidersPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400 sm:text-base">
-            Real-time inference endpoints, latency metrics, uptime benchmarks, and competitive price-per-token indexing across global host providers.
+            Inference endpoints, latency metrics, uptime data, and pricing across global providers.
           </p>
         </div>
 
@@ -199,7 +209,7 @@ export default function ProvidersPage() {
             <p className="mt-4 text-3xl font-extrabold text-white">
               {loading ? "..." : providers.length}
             </p>
-            <p className="mt-1 text-xs text-slate-400">Active provider endpoints</p>
+            <p className="mt-1 text-xs text-slate-400">Registered providers</p>
           </div>
 
           {/* Card 2: Total Listings */}
@@ -231,7 +241,7 @@ export default function ProvidersPage() {
             <p className="mt-4 text-3xl font-extrabold text-emerald-400">
               {loading ? "..." : formatPercent(averageUptime)}
             </p>
-            <p className="mt-1 text-xs text-slate-400">Global service availability</p>
+            <p className="mt-1 text-xs text-slate-400">Average reported uptime (30m)</p>
           </div>
 
           {/* Card 4: Average Latency */}
@@ -251,26 +261,29 @@ export default function ProvidersPage() {
           </div>
         </div>
 
-        {/* Global Fleet Status Pill Banner */}
+        {/* Endpoint Telemetry Coverage */}
         <div className="mb-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-slate-900/40 p-5 backdrop-blur-xl">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-              <CheckCircle2 size={22} />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400">
+              <Activity size={22} />
             </div>
+
             <div>
-              <p className="text-sm font-bold text-white">Global Routing Availability</p>
+              <p className="text-sm font-bold text-white">
+                Endpoint Telemetry
+              </p>
               <p className="text-xs text-slate-400">
-                Health check status across multi-provider clusters
+                OpenRouter-reported endpoint status information
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-semibold text-emerald-300">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-              {loading ? "Checking..." : `${availableListings} of ${totalModels} Endpoints Operational`}
-            </span>
-          </div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-300">
+            <span className="h-2 w-2 rounded-full bg-cyan-400" />
+            {loading
+              ? "Checking..."
+              : `${endpointsWithStatus} of ${totalModels} Endpoints With Status Data`}
+          </span>
         </div>
 
         {/* Search Bar Section */}
@@ -325,11 +338,13 @@ export default function ProvidersPage() {
                 provider.models?.map((item) => item.latencyMs) || []
               );
               const uptime = average(
-                provider.models?.map((item) => item.uptimePercent) || []
+                provider.models?.map((item) => item.uptimeLast30m) || []
               );
-              const availableCount = (provider.models || []).filter(
-                (item) => item.isAvailable
+
+              const statusCount = (provider.models || []).filter(
+                (item) => typeof item.endpointStatus === "number"
               ).length;
+
               const modelCount = provider.models?.length || 0;
 
               return (
@@ -393,14 +408,15 @@ export default function ProvidersPage() {
                         </p>
                       </div>
 
-                      {/* Active Status */}
+                      {/* Endpoint Status Coverage */}
                       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
                         <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                          <CheckCircle2 size={13} className="text-violet-400" />
-                          Live
+                          <Activity size={13} className="text-cyan-400" />
+                          Status Data
                         </div>
-                        <p className="mt-1 text-sm font-bold text-violet-300">
-                          {availableCount}/{modelCount}
+
+                        <p className="mt-1 text-sm font-bold text-cyan-300">
+                          {statusCount}/{modelCount}
                         </p>
                       </div>
                     </div>
@@ -441,19 +457,9 @@ export default function ProvidersPage() {
                                   </p>
                                 </div>
 
-                                <span
-                                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                    listing.isAvailable
-                                      ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                                      : "border border-red-500/30 bg-red-500/10 text-red-400"
-                                  }`}
-                                >
-                                  {listing.isAvailable ? (
-                                    <CheckCircle2 size={10} />
-                                  ) : (
-                                    <AlertCircle size={10} />
-                                  )}
-                                  {listing.isAvailable ? "Ready" : "Inactive"}
+                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
+                                  <Activity size={10} />
+                                  {formatEndpointStatus(listing.endpointStatus)}
                                 </span>
                               </div>
 
@@ -508,7 +514,13 @@ export default function ProvidersPage() {
         {/* Footer & Telemetry Disclaimer */}
         <div className="mt-12 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-xs text-slate-400">
           <p>
-            <span className="font-bold text-slate-300">Infrastructure Note:</span> Provider token rates and latency statistics represent aggregated real-time observations through OpenRouter endpoint routing and provider telemetry.
+            <span className="font-bold text-slate-300">
+              Data Source Note:
+            </span>{" "}
+            Provider pricing, endpoint status, 30-minute uptime, and latency
+            are displayed from OpenRouter data where available. Missing
+            telemetry is shown as unavailable. Status codes are displayed
+            without assigning unverified meanings.
           </p>
         </div>
 
