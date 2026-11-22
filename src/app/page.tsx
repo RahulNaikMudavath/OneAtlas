@@ -18,6 +18,7 @@ import {
   Eye,
   Menu,
   X,
+  Network,
 } from "lucide-react";
 
 const companyColors: Record<string, string> = {
@@ -151,6 +152,7 @@ export default function Home() {
               { name: "Compare Models", icon: GitCompareArrows },
               { name: "Rankings", icon: Trophy },
               { name: "AI Companies", icon: Building2 },
+              { name: "Providers", icon: Network },
             ].map((item) => (
               <button
                 key={item.name}
@@ -167,6 +169,10 @@ export default function Home() {
 
                   if (item.name === "AI Companies") {
                     window.location.href = "/companies";
+                  }
+
+                  if (item.name === "Providers") {
+                    window.location.href = "/providers";
                   }
 
                   setMobileMenu(false);
