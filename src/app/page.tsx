@@ -223,10 +223,16 @@ export default function Home() {
       if (sortBy === "releaseDate") {
         const timeA = a.releaseDate
           ? new Date(a.releaseDate).getTime()
-          : (a.sourceCreatedAt ? new Date(a.sourceCreatedAt).getTime() : 0);
+          : null;
+
         const timeB = b.releaseDate
           ? new Date(b.releaseDate).getTime()
-          : (b.sourceCreatedAt ? new Date(b.sourceCreatedAt).getTime() : 0);
+          : null;
+
+        if (timeA === null && timeB === null) return 0;
+        if (timeA === null) return 1;
+        if (timeB === null) return -1;
+
         return timeB - timeA;
       }
       return a.name.localeCompare(b.name);
@@ -740,7 +746,7 @@ export default function Home() {
                         className="w-full rounded-xl border border-white/10 bg-[#07080f] p-3 text-xs text-white outline-none focus:border-violet-500"
                       >
                         <option value="name">Model Name (A–Z)</option>
-                        <option value="releaseDate">Newest Release Date</option>
+                        <option value="releaseDate">Newest Release Date (when available)</option>
                         <option value="inputPrice">Lowest Input Price ($ / 1M tokens)</option>
                         <option value="outputPrice">Lowest Output Price ($ / 1M tokens)</option>
                         <option value="context">Largest Context Window</option>
