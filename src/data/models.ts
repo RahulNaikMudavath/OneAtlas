@@ -6,6 +6,7 @@ export type AIModel = {
   context: string;
   input: string;
   output: string;
+  releaseDate: string;
   description: string;
   capabilities: string[];
   modalities: string[];
@@ -20,6 +21,7 @@ export const models: AIModel[] = [
     context: "400K",
     input: "$1.25",
     output: "$10.00",
+    releaseDate: "2025-11-12",
     description:
       "An advanced AI model designed for reasoning, problem solving and general-purpose intelligence.",
     capabilities: ["Reasoning", "Coding", "Analysis", "Instruction Following"],
@@ -33,6 +35,7 @@ export const models: AIModel[] = [
     context: "200K",
     input: "$3.00",
     output: "$15.00",
+    releaseDate: "2025-09-29",
     description:
       "A capable AI model designed for coding, complex reasoning and professional workflows.",
     capabilities: ["Coding", "Reasoning", "Analysis", "Writing"],
@@ -46,6 +49,7 @@ export const models: AIModel[] = [
     context: "1M",
     input: "$1.25",
     output: "$10.00",
+    releaseDate: "2025-03-25",
     description:
       "A multimodal AI model designed to understand and process different types of information.",
     capabilities: ["Reasoning", "Coding", "Long Context", "Analysis"],
@@ -59,6 +63,7 @@ export const models: AIModel[] = [
     context: "128K",
     input: "$0.27",
     output: "$1.10",
+    releaseDate: "2024-12-26",
     description:
       "An AI language model built for general-purpose conversation and technical tasks.",
     capabilities: ["Coding", "Chat", "Reasoning"],
@@ -72,6 +77,7 @@ export const models: AIModel[] = [
     context: "1M",
     input: "$0.20",
     output: "$0.60",
+    releaseDate: "2025-04-05",
     description:
       "An open-weight multimodal model from Meta for a variety of AI applications.",
     capabilities: ["Multimodal", "Coding", "Reasoning"],
