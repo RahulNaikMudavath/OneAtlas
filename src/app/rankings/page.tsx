@@ -1,28 +1,37 @@
+
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Trophy,
-  Search,
   Medal,
   Code2,
   BrainCircuit,
   Zap,
   TrendingUp,
 } from "lucide-react";
-import { models } from "@/data/models";
-
-const benchmarkData = [
-  { slug: "gpt-5-1", overall: 96, reasoning: 95, coding: 97, knowledge: 94 },
-  { slug: "claude-sonnet-4-5", overall: 94, reasoning: 96, coding: 98, knowledge: 91 },
-  { slug: "gemini-2-5-pro", overall: 92, reasoning: 94, coding: 91, knowledge: 96 },
-  { slug: "deepseek-v3", overall: 89, reasoning: 91, coding: 93, knowledge: 86 },
-  { slug: "llama-4-maverick", overall: 86, reasoning: 85, coding: 87, knowledge: 88 },
-];
 
 type Metric = "overall" | "reasoning" | "coding" | "knowledge";
+
+type APIModel = {
+  id: string;
+  slug: string;
+  name: string;
+  company: {
+    name: string;
+  };
+  benchmarks: {
+    id: string;
+    name: string;
+    category: string;
+    score: number;
+    source: string | null;
+  }[];
+};
+
+type RankedModel = APIModel & Record<Metric, number>;
 
 const metrics: { label: string; value: Metric }[] = [
   { label: "Overall Score", value: "overall" },
@@ -34,21 +43,73 @@ const metrics: { label: string; value: Metric }[] = [
 export default function RankingsPage() {
   const [metric, setMetric] = useState<Metric>("overall");
   const [search, setSearch] = useState("");
+  const [models, setModels] = useState<APIModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchModels() {
+      try {
+        const response = await fetch("/api/models");
+
+        if (!response.ok) {
+          throw new Error("Unable to fetch model data");
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.message || "Unable to load rankings");
+        }
+
+        setModels(result.data);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Something went wrong"
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchModels();
+  }, []);
 
   const rankedModels = useMemo(() => {
-    return benchmarkData
-      .map((benchmark) => {
-        const model = models.find((item) => item.slug === benchmark.slug);
-        return model ? { ...model, ...benchmark } : null;
+    return models
+      .map((model): RankedModel => {
+        const scores: Record<Metric, number> = {
+          overall: 0,
+          reasoning: 0,
+          coding: 0,
+          knowledge: 0,
+        };
+
+        model.benchmarks.forEach((benchmark) => {
+          const category = benchmark.category.toLowerCase();
+
+          if (
+            category === "overall" ||
+            category === "reasoning" ||
+            category === "coding" ||
+            category === "knowledge"
+          ) {
+            scores[category] = benchmark.score;
+          }
+        });
+
+        return {
+          ...model,
+          ...scores,
+        };
       })
-      .filter((item) => item !== null)
       .filter(
-        (item) =>
-          item.name.toLowerCase().includes(search.toLowerCase()) ||
-          item.company.toLowerCase().includes(search.toLowerCase())
+        (model) =>
+          model.name.toLowerCase().includes(search.toLowerCase()) ||
+          model.company.name.toLowerCase().includes(search.toLowerCase())
       )
       .sort((a, b) => b[metric] - a[metric]);
-  }, [metric, search]);
+  }, [models, metric, search]);
 
   const topModel = rankedModels[0];
 
@@ -68,9 +129,11 @@ export default function RankingsPage() {
             <Trophy size={16} />
             AI INTELLIGENCE LEADERBOARD
           </div>
+
           <h1 className="text-3xl font-bold sm:text-4xl">
             Rankings & <span className="text-violet-400">Benchmarks</span>
           </h1>
+
           <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
             Explore AI model performance across reasoning, coding and
             knowledge benchmarks.
@@ -83,46 +146,69 @@ export default function RankingsPage() {
               <Medal size={19} />
               Current top performer
             </div>
-            {topModel && (
-              <>
-                <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-bold">{topModel.name}</h2>
-                    <p className="mt-1 text-sm text-zinc-400">
-                      {topModel.company}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-4xl font-bold text-violet-300">
-                      {topModel[metric]}
-                      <span className="text-lg">/100</span>
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {metrics.find((item) => item.value === metric)?.label}
-                    </p>
-                  </div>
+
+            {loading ? (
+              <p className="mt-5 text-sm text-zinc-400">
+                Loading leaderboard...
+              </p>
+            ) : topModel ? (
+              <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold">{topModel.name}</h2>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    {topModel.company.name}
+                  </p>
                 </div>
-              </>
+
+                <div className="text-right">
+                  <p className="text-4xl font-bold text-violet-300">
+                    {topModel[metric]}
+                    <span className="text-lg">/100</span>
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {metrics.find((item) => item.value === metric)?.label}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-5 text-sm text-zinc-400">
+                No benchmark data available.
+              </p>
             )}
           </div>
 
           <div className="rounded-2xl border border-white/[0.08] bg-[#101117] p-6">
             <TrendingUp className="mb-5 text-emerald-400" size={23} />
             <p className="text-sm text-zinc-400">Models evaluated</p>
-            <h2 className="mt-2 text-4xl font-bold">05</h2>
+            <h2 className="mt-2 text-4xl font-bold">
+              {loading ? "..." : models.filter((m) => m.benchmarks.length > 0).length.toString().padStart(2, "0")}
+            </h2>
             <p className="mt-2 text-xs text-zinc-500">
-              Initial demonstration leaderboard
+              Models with benchmark records
             </p>
           </div>
         </div>
 
         <section className="mb-8 rounded-2xl border border-white/[0.08] bg-[#101117] p-5">
           <h2 className="mb-5 font-semibold">Performance categories</h2>
+
           <div className="grid gap-4 sm:grid-cols-3">
             {[
-              { label: "Reasoning", icon: BrainCircuit, description: "Logical thinking and problem solving" },
-              { label: "Coding", icon: Code2, description: "Programming and code generation" },
-              { label: "Knowledge", icon: Zap, description: "Knowledge and information tasks" },
+              {
+                label: "Reasoning",
+                icon: BrainCircuit,
+                description: "Logical thinking and problem solving",
+              },
+              {
+                label: "Coding",
+                icon: Code2,
+                description: "Programming and code generation",
+              },
+              {
+                label: "Knowledge",
+                icon: Zap,
+                description: "Knowledge and information tasks",
+              },
             ].map((item) => (
               <div
                 key={item.label}
@@ -130,7 +216,9 @@ export default function RankingsPage() {
               >
                 <item.icon size={22} className="mb-4 text-violet-400" />
                 <p className="font-medium">{item.label}</p>
-                <p className="mt-1 text-xs text-zinc-500">{item.description}</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {item.description}
+                </p>
               </div>
             ))}
           </div>
@@ -167,48 +255,72 @@ export default function RankingsPage() {
             ))}
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#101117]">
-            <table className="w-full min-w-[650px] text-left">
-              <thead className="bg-white/[0.025] text-[11px] uppercase tracking-wider text-zinc-500">
-                <tr>
-                  <th className="px-5 py-4">Rank</th>
-                  <th className="px-5 py-4">Model</th>
-                  <th className="px-5 py-4">Overall</th>
-                  <th className="px-5 py-4">Reasoning</th>
-                  <th className="px-5 py-4">Coding</th>
-                  <th className="px-5 py-4">Knowledge</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.06]">
-                {rankedModels.map((model, index) => (
-                  <tr key={model.slug} className="hover:bg-white/[0.025]">
-                    <td className="px-5 py-5">
-                      <span className={`font-bold ${
-                        index === 0 ? "text-amber-400" : "text-zinc-400"
-                      }`}>
-                        #{index + 1}
-                      </span>
-                    </td>
-                    <td className="px-5 py-5">
-                      <Link
-                        href={`/models/${model.slug}`}
-                        className="text-sm font-semibold hover:text-violet-400"
-                      >
-                        {model.name}
-                      </Link>
-                      <p className="mt-1 text-xs text-zinc-500">
-                        {model.company}
-                      </p>
-                    </td>
-                    {(["overall", "reasoning", "coding", "knowledge"] as const).map(
-                      (key) => (
+          {loading && (
+            <p className="p-8 text-center text-sm text-zinc-400">
+              Loading rankings from database...
+            </p>
+          )}
+
+          {error && (
+            <p className="p-8 text-center text-sm text-red-400">
+              {error}
+            </p>
+          )}
+
+          {!loading && !error && (
+            <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#101117]">
+              <table className="w-full min-w-[650px] text-left">
+                <thead className="bg-white/[0.025] text-[11px] uppercase tracking-wider text-zinc-500">
+                  <tr>
+                    <th className="px-5 py-4">Rank</th>
+                    <th className="px-5 py-4">Model</th>
+                    <th className="px-5 py-4">Overall</th>
+                    <th className="px-5 py-4">Reasoning</th>
+                    <th className="px-5 py-4">Coding</th>
+                    <th className="px-5 py-4">Knowledge</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-white/[0.06]">
+                  {rankedModels.map((model, index) => (
+                    <tr key={model.slug} className="hover:bg-white/[0.025]">
+                      <td className="px-5 py-5">
+                        <span
+                          className={`font-bold ${
+                            index === 0 ? "text-amber-400" : "text-zinc-400"
+                          }`}
+                        >
+                          #{index + 1}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-5">
+                        <Link
+                          href={`/models/${model.slug}`}
+                          className="text-sm font-semibold hover:text-violet-400"
+                        >
+                          {model.name}
+                        </Link>
+                        <p className="mt-1 text-xs text-zinc-500">
+                          {model.company.name}
+                        </p>
+                      </td>
+
+                      {(
+                        ["overall", "reasoning", "coding", "knowledge"] as const
+                      ).map((key) => (
                         <td key={key} className="px-5 py-5">
                           <div className="flex items-center gap-3">
-                            <span className={`text-sm font-semibold ${
-                              key === metric ? "text-violet-300" : "text-zinc-300"
-                            }`}>
+                            <span
+                              className={`text-sm font-semibold ${
+                                key === metric
+                                  ? "text-violet-300"
+                                  : "text-zinc-300"
+                              }`}
+                            >
                               {model[key]}
                             </span>
+
                             <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-white/10 sm:block">
                               <div
                                 className="h-full rounded-full bg-violet-500"
@@ -217,25 +329,25 @@ export default function RankingsPage() {
                             </div>
                           </div>
                         </td>
-                      )
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-            {rankedModels.length === 0 && (
-              <p className="p-10 text-center text-sm text-zinc-500">
-                No matching models found.
-              </p>
-            )}
-          </div>
+              {rankedModels.length === 0 && (
+                <p className="p-10 text-center text-sm text-zinc-500">
+                  No matching models found.
+                </p>
+              )}
+            </div>
+          )}
         </section>
 
         <p className="mt-6 text-xs leading-5 text-zinc-500">
-          Note: Scores on this page are illustrative demonstration values,
-          not verified benchmark results. They must not be interpreted as
-          actual model performance rankings.
+          Note: Scores are illustrative demonstration values stored in the
+          database, not verified benchmark results. They must not be
+          interpreted as actual model performance rankings.
         </p>
 
         <footer className="mt-12 border-t border-white/[0.07] py-6 text-xs text-zinc-500">
