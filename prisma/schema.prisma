@@ -52,10 +52,22 @@ model ModelProvider {
   modelId    String
   providerId String
 
+  // Provider-specific pricing per 1 million tokens (USD)
+  inputPricePerMillion  Float?
+  outputPricePerMillion Float?
+
+  // Provider performance information
+  latencyMs      Float?
+  uptimePercent  Float?
+  isAvailable    Boolean  @default(true)
+  lastCheckedAt  DateTime?
+
   model      Model    @relation(fields: [modelId], references: [id])
   provider   Provider @relation(fields: [providerId], references: [id])
 
   @@unique([modelId, providerId])
+  @@index([providerId])
+  @@index([modelId])
 }
 
 model Benchmark {
