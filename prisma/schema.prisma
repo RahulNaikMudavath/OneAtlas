@@ -28,6 +28,11 @@ model Model {
   description   String?
   capabilities  String[]
   modalities    String[]
+  releaseDate         DateTime?
+  source              String?
+  sourceModelId       String?
+  supportedParameters String[] @default([])
+  lastSyncedAt        DateTime?
 
   companyId     String
   company       Company  @relation(fields: [companyId], references: [id])
@@ -62,10 +67,17 @@ model ModelProvider {
   isAvailable    Boolean  @default(true)
   lastCheckedAt  DateTime?
 
+  endpointTag         String   @default("default")
+  endpointName        String?
+  serviceTier         String?
+  maxPromptTokens     Int?
+  maxCompletionTokens Int?
+  uptimeLast30m       Float?
+
   model      Model    @relation(fields: [modelId], references: [id])
   provider   Provider @relation(fields: [providerId], references: [id])
 
-  @@unique([modelId, providerId])
+  @@unique([modelId, providerId, endpointTag])
   @@index([providerId])
   @@index([modelId])
 }
