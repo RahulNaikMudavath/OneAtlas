@@ -259,19 +259,19 @@ export default function Home() {
               {[
                 {
                   label: "AI Models",
-                  value: "1,200+",
+                  value: models.length.toString(),
                   change: "Across multiple providers",
                   icon: BrainCircuit,
                 },
                 {
                   label: "AI Companies",
-                  value: "80+",
+                  value: new Set(models.map((m) => m.company.name)).size.toString(),
                   change: "Leading research labs",
                   icon: Building2,
                 },
                 {
                   label: "Model Categories",
-                  value: "12+",
+                  value: new Set(models.map((m) => m.category)).size.toString(),
                   change: "Explore different capabilities",
                   icon: Zap,
                 },
