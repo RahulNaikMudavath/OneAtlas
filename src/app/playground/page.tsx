@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Code2,
   Copy,
-  Play,
   Terminal,
   Check,
 } from "lucide-react";

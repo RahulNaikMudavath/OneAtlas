@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Sparkles, Search, RotateCcw } from "lucide-react";
+import { ArrowLeft, Sparkles, RotateCcw } from "lucide-react";
 
 type Model = {
   id: string;
