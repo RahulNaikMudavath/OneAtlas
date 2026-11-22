@@ -163,7 +163,8 @@ export default function ProvidersPage() {
                   </div>
 
                   <span className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-zinc-400">
-                    {provider.models.length} models
+                    {provider.models.length}{" "}
+                    {provider.models.length === 1 ? "model" : "models"}
                   </span>
                 </div>
 
