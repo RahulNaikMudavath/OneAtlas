@@ -7,13 +7,17 @@ import {
   ArrowLeft,
   Trophy,
   Medal,
-  Code2,
-  BrainCircuit,
-  Zap,
   TrendingUp,
+  BarChart3,
 } from "lucide-react";
 
-type Metric = "overall" | "reasoning" | "coding" | "knowledge";
+type APIBenchmark = {
+  id: string;
+  name: string;
+  category: string;
+  score: number;
+  source: string | null;
+};
 
 type APIModel = {
   id: string;
@@ -22,26 +26,27 @@ type APIModel = {
   company: {
     name: string;
   };
-  benchmarks: {
-    id: string;
-    name: string;
-    category: string;
-    score: number;
-    source: string | null;
-  }[];
+  benchmarks: APIBenchmark[];
 };
 
-type RankedModel = APIModel & Record<Metric, number>;
+type RankedModel = APIModel & {
+  benchmark: APIBenchmark;
+};
 
-const metrics: { label: string; value: Metric }[] = [
-  { label: "Overall Score", value: "overall" },
-  { label: "Reasoning", value: "reasoning" },
-  { label: "Coding", value: "coding" },
-  { label: "Knowledge", value: "knowledge" },
-];
+const BENCHMARK_SOURCE = "OpenRouter: Artificial Analysis";
+
+function formatBenchmarkName(name: string) {
+  return name
+    .replace(/_index$/i, "")
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 export default function RankingsPage() {
-  const [metric, setMetric] = useState<Metric>("overall");
+  const [selectedBenchmark, setSelectedBenchmark] =
+    useState("intelligence_index");
+
   const [search, setSearch] = useState("");
   const [models, setModels] = useState<APIModel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,43 +80,76 @@ export default function RankingsPage() {
     fetchModels();
   }, []);
 
+  // Only use imported Artificial Analysis benchmark records.
+  // Illustrative demonstration records are deliberately excluded.
+  const benchmarkCategories = useMemo(() => {
+    const categories = models.flatMap((model) =>
+      model.benchmarks
+        .filter(
+          (benchmark) =>
+            benchmark.source === BENCHMARK_SOURCE &&
+            Number.isFinite(benchmark.score)
+        )
+        .map((benchmark) => benchmark.name)
+    );
+
+    return Array.from(new Set(categories)).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [models]);
+
+  const activeBenchmark = benchmarkCategories.includes(selectedBenchmark)
+    ? selectedBenchmark
+    : benchmarkCategories[0] || "";
+
   const rankedModels = useMemo(() => {
     return models
-      .map((model): RankedModel => {
-        const scores: Record<Metric, number> = {
-          overall: 0,
-          reasoning: 0,
-          coding: 0,
-          knowledge: 0,
-        };
+      .map((model): RankedModel | null => {
+        const benchmark = model.benchmarks.find(
+          (item) =>
+            item.source === BENCHMARK_SOURCE &&
+            item.name === activeBenchmark &&
+            Number.isFinite(item.score)
+        );
 
-        model.benchmarks.forEach((benchmark) => {
-          const category = benchmark.category.toLowerCase();
-
-          if (
-            category === "overall" ||
-            category === "reasoning" ||
-            category === "coding" ||
-            category === "knowledge"
-          ) {
-            scores[category] = benchmark.score;
-          }
-        });
+        if (!benchmark) return null;
 
         return {
           ...model,
-          ...scores,
+          benchmark,
         };
       })
+      .filter((model): model is RankedModel => model !== null)
       .filter(
         (model) =>
           model.name.toLowerCase().includes(search.toLowerCase()) ||
           model.company.name.toLowerCase().includes(search.toLowerCase())
       )
-      .sort((a, b) => b[metric] - a[metric]);
-  }, [models, metric, search]);
+      .sort((a, b) => b.benchmark.score - a.benchmark.score);
+  }, [models, activeBenchmark, search]);
 
   const topModel = rankedModels[0];
+
+  const evaluatedModelCount = useMemo(() => {
+    return models.filter((model) =>
+      model.benchmarks.some(
+        (benchmark) =>
+          benchmark.source === BENCHMARK_SOURCE &&
+          Number.isFinite(benchmark.score)
+      )
+    ).length;
+  }, [models]);
+
+  const maximumScore = Math.max(
+    ...rankedModels.map((model) => model.benchmark.score),
+    0
+  );
+
+  function formatScore(score: number) {
+    return score.toLocaleString(undefined, {
+      maximumFractionDigits: 3,
+    });
+  }
 
   return (
     <main className="min-h-screen bg-[#08090d] px-5 py-8 text-white sm:px-10">
@@ -131,12 +169,13 @@ export default function RankingsPage() {
           </div>
 
           <h1 className="text-3xl font-bold sm:text-4xl">
-            Rankings & <span className="text-violet-400">Benchmarks</span>
+            Rankings &{" "}
+            <span className="text-violet-400">Benchmarks</span>
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-            Explore AI model performance across reasoning, coding and
-            knowledge benchmarks.
+            Explore AI model performance using imported Artificial
+            Analysis benchmark data.
           </p>
         </div>
 
@@ -144,7 +183,7 @@ export default function RankingsPage() {
           <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.08] p-6 md:col-span-2">
             <div className="flex items-center gap-2 text-sm text-violet-300">
               <Medal size={19} />
-              Current top performer
+              Top performer
             </div>
 
             {loading ? (
@@ -154,7 +193,9 @@ export default function RankingsPage() {
             ) : topModel ? (
               <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold">{topModel.name}</h2>
+                  <h2 className="text-2xl font-bold">
+                    {topModel.name}
+                  </h2>
                   <p className="mt-1 text-sm text-zinc-400">
                     {topModel.company.name}
                   </p>
@@ -162,98 +203,85 @@ export default function RankingsPage() {
 
                 <div className="text-right">
                   <p className="text-4xl font-bold text-violet-300">
-                    {topModel[metric]}
-                    <span className="text-lg">/100</span>
+                    {formatScore(topModel.benchmark.score)}
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
-                    {metrics.find((item) => item.value === metric)?.label}
+                    {formatBenchmarkName(activeBenchmark)}
                   </p>
                 </div>
               </div>
             ) : (
               <p className="mt-5 text-sm text-zinc-400">
-                No benchmark data available.
+                No benchmark data available for this category.
               </p>
             )}
           </div>
 
           <div className="rounded-2xl border border-white/[0.08] bg-[#101117] p-6">
             <TrendingUp className="mb-5 text-emerald-400" size={23} />
-            <p className="text-sm text-zinc-400">Models evaluated</p>
+            <p className="text-sm text-zinc-400">
+              Models evaluated
+            </p>
             <h2 className="mt-2 text-4xl font-bold">
-              {loading ? "..." : models.filter((m) => m.benchmarks.length > 0).length.toString().padStart(2, "0")}
+              {loading ? "..." : evaluatedModelCount}
             </h2>
             <p className="mt-2 text-xs text-zinc-500">
-              Models with benchmark records
+              Models with imported benchmark records
             </p>
           </div>
         </div>
 
         <section className="mb-8 rounded-2xl border border-white/[0.08] bg-[#101117] p-5">
-          <h2 className="mb-5 font-semibold">Performance categories</h2>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              {
-                label: "Reasoning",
-                icon: BrainCircuit,
-                description: "Logical thinking and problem solving",
-              },
-              {
-                label: "Coding",
-                icon: Code2,
-                description: "Programming and code generation",
-              },
-              {
-                label: "Knowledge",
-                icon: Zap,
-                description: "Knowledge and information tasks",
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
-              >
-                <item.icon size={22} className="mb-4 text-violet-400" />
-                <p className="font-medium">{item.label}</p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  {item.description}
-                </p>
-              </div>
-            ))}
+          <div className="mb-5 flex items-center gap-2">
+            <BarChart3 size={19} className="text-violet-400" />
+            <h2 className="font-semibold">
+              Available benchmark categories
+            </h2>
           </div>
+
+          {loading ? (
+            <p className="text-sm text-zinc-400">
+              Loading benchmark categories...
+            </p>
+          ) : benchmarkCategories.length === 0 ? (
+            <p className="text-sm text-zinc-400">
+              No imported benchmark categories available.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {benchmarkCategories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedBenchmark(category)}
+                  className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                    activeBenchmark === category
+                      ? "border-violet-500 bg-violet-600 text-white"
+                      : "border-white/10 bg-white/[0.02] text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  {formatBenchmarkName(category)}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="space-y-5">
           <div>
-            <h2 className="text-xl font-bold">Model Leaderboard</h2>
+            <h2 className="text-xl font-bold">
+              Model Leaderboard
+            </h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Compare model performance and rankings.
+              Rankings based on the selected benchmark.
             </p>
           </div>
 
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search model or provider..."
+            placeholder="Search model or company..."
             className="w-full rounded-xl border border-white/[0.09] bg-[#101117] px-4 py-4 text-sm outline-none focus:border-violet-500"
           />
-
-          <div className="flex flex-wrap gap-2">
-            {metrics.map((item) => (
-              <button
-                key={item.value}
-                onClick={() => setMetric(item.value)}
-                className={`rounded-lg px-4 py-2 text-xs font-medium transition ${
-                  metric === item.value
-                    ? "bg-violet-600 text-white"
-                    : "border border-white/10 bg-[#101117] text-zinc-400 hover:text-white"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
 
           {loading && (
             <p className="p-8 text-center text-sm text-zinc-400">
@@ -274,20 +302,26 @@ export default function RankingsPage() {
                   <tr>
                     <th className="px-5 py-4">Rank</th>
                     <th className="px-5 py-4">Model</th>
-                    <th className="px-5 py-4">Overall</th>
-                    <th className="px-5 py-4">Reasoning</th>
-                    <th className="px-5 py-4">Coding</th>
-                    <th className="px-5 py-4">Knowledge</th>
+                    <th className="px-5 py-4">Company</th>
+                    <th className="px-5 py-4">
+                      {formatBenchmarkName(activeBenchmark)}
+                    </th>
+                    <th className="px-5 py-4">Source</th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-white/[0.06]">
                   {rankedModels.map((model, index) => (
-                    <tr key={model.slug} className="hover:bg-white/[0.025]">
+                    <tr
+                      key={model.id}
+                      className="hover:bg-white/[0.025]"
+                    >
                       <td className="px-5 py-5">
                         <span
                           className={`font-bold ${
-                            index === 0 ? "text-amber-400" : "text-zinc-400"
+                            index === 0
+                              ? "text-amber-400"
+                              : "text-zinc-400"
                           }`}
                         >
                           #{index + 1}
@@ -301,35 +335,41 @@ export default function RankingsPage() {
                         >
                           {model.name}
                         </Link>
-                        <p className="mt-1 text-xs text-zinc-500">
-                          {model.company.name}
-                        </p>
                       </td>
 
-                      {(
-                        ["overall", "reasoning", "coding", "knowledge"] as const
-                      ).map((key) => (
-                        <td key={key} className="px-5 py-5">
-                          <div className="flex items-center gap-3">
-                            <span
-                              className={`text-sm font-semibold ${
-                                key === metric
-                                  ? "text-violet-300"
-                                  : "text-zinc-300"
-                              }`}
-                            >
-                              {model[key]}
-                            </span>
+                      <td className="px-5 py-5 text-sm text-zinc-400">
+                        {model.company.name}
+                      </td>
 
-                            <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-white/10 sm:block">
-                              <div
-                                className="h-full rounded-full bg-violet-500"
-                                style={{ width: `${model[key]}%` }}
-                              />
-                            </div>
+                      <td className="px-5 py-5">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-violet-300">
+                            {formatScore(model.benchmark.score)}
+                          </span>
+
+                          <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-white/10 sm:block">
+                            <div
+                              className="h-full rounded-full bg-violet-500"
+                              style={{
+                                width: `${
+                                  maximumScore > 0
+                                    ? Math.max(
+                                        0,
+                                        (model.benchmark.score /
+                                          maximumScore) *
+                                          100
+                                      )
+                                    : 0
+                                }%`,
+                              }}
+                            />
                           </div>
-                        </td>
-                      ))}
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-5 text-xs text-zinc-500">
+                        {model.benchmark.source}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -337,7 +377,7 @@ export default function RankingsPage() {
 
               {rankedModels.length === 0 && (
                 <p className="p-10 text-center text-sm text-zinc-500">
-                  No matching models found.
+                  No evaluated models match this benchmark and search.
                 </p>
               )}
             </div>
@@ -345,9 +385,12 @@ export default function RankingsPage() {
         </section>
 
         <p className="mt-6 text-xs leading-5 text-zinc-500">
-          Note: Scores are illustrative demonstration values stored in the
-          database, not verified benchmark results. They must not be
-          interpreted as actual model performance rankings.
+          Benchmark scores are displayed in their original source
+          values. Only OpenRouter: Artificial Analysis records are
+          included. Scores from different benchmark categories may
+          use different scales and should not be compared directly.
+          Models without a score for the selected benchmark are
+          excluded from its leaderboard.
         </p>
 
         <footer className="mt-12 border-t border-white/[0.07] py-6 text-xs text-zinc-500">
