@@ -436,9 +436,9 @@ export default function Home() {
             </div>
           </header>
 
-          <div className="mx-auto max-w-[1500px] space-y-10 p-5 sm:p-8">
+          <div className="mx-auto max-w-[1500px] space-y-8 p-4 sm:p-6">
             {/* HERO BANNER */}
-            <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-violet-950/20 via-[#0d0f1b]/90 to-[#080912] p-8 sm:p-12 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
+            <section className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-violet-950/20 via-[#0d0f1b]/90 to-[#080912] p-6 sm:p-9 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
               {/* Radial backdrop inside hero */}
               <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-gradient-to-br from-violet-600/20 to-fuchsia-500/15 blur-3xl" />
               <div className="pointer-events-none absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-gradient-to-tr from-cyan-600/20 to-blue-500/10 blur-3xl" />
