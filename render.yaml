@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: oneatlas
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy && npm run db:import:openrouter && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: oneatlas-db
+          property: connectionString
+
+databases:
+  - name: oneatlas-db
+    plan: free
+    region: oregon
+    databaseName: oneatlas
+    user: oneatlas
